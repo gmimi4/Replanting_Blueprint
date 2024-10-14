@@ -15,14 +15,6 @@ import glob
 import collections
 import time
 
-# line_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided'
-# out_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\10_cut_by_intersect'
-epsg_use = 'epsg:32648'
-
-# lines_list = glob.glob(line_dir+"/*.shp")
-# line_shp_path = lines_list[10]
-# # line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided\centerlines_45_00.shp"
-
 
 def main(line_shp_path, out_dir):
     start = time.time()
@@ -231,7 +223,8 @@ def main(line_shp_path, out_dir):
     
     """#Export to shp"""
     gdf_export = gpd.GeoDataFrame(geometry=lines_after_cut)
-    gdf_export.crs = epsg_use
+    # gdf_export.crs = epsg_use
+    gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
     gdf_export["length"] = gdf_export.geometry.length
     
     outfile = os.path.join(out_dir, os.path.basename(line_shp_path)[:-4] +"_cut.shp")

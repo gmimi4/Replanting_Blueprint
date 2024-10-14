@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import os,sys
-import shapely
 from shapely.geometry import Point, LineString, Polygon,MultiPoint, MultiLineString
-from shapely.geometry import shape
-import fiona
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shapely.geometry as geom
 import itertools
 import time
 
-
-# line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\4_centerlines\centerlines.shp"
-# out_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line"
-# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/Terrace_detection/10_cut_intersects_2lines'
 
 def main(line_shp_path, out_dir):
     start = time.time() 
@@ -196,7 +188,8 @@ def main(line_shp_path, out_dir):
     
     """#Export to shp"""
     gdf_angle = gpd.GeoDataFrame(geometry=lines_by_angle)
-    gdf_angle.crs = 'epsg:32648'
+    # gdf_angle.crs = 'epsg:32648'
+    gdf_angle = gdf_angle.set_crs(gpdf.crs, allow_override=True)
     gdf_angle["length"] = gdf_angle.geometry.length
     
     outfile = os.path.join(out_dir, os.path.basename(line_shp_path)[:-4] +f"_{angle_thre}.shp")

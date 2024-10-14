@@ -14,10 +14,7 @@ import itertools
 from collections import Counter
 import time
 
-# line_shp_path = sys.argv[1]
-# line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/5_paring/centerlines_45_cut_cut2ls_merge_45_connect_merge_over5_road_sing_1_cut_cut2_vertical_T1T2.shp'
-# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/5_paring'
-# os.makedirs(tmp_dir2, exist_ok=True)
+
 
 def main(line_shp_path, out_dir):
     start = time.time()
@@ -103,6 +100,14 @@ def main(line_shp_path, out_dir):
     gdf_T2s = gpdf.query("T1T2==2")
     pair_list = list(set(gdf_T2s.Pair.values))
     
+    ### in case T1 and T2 = 0 (no data)
+    if len(gdf_T1s) ==0 and len(gdf_T2s) ==0:
+        gpdf["T1T2"] = 1
+        gdf_T1s = gpdf.query("T1T2==1")
+        pair_list = list(set(gdf_T1s.Pair.values))
+        
+        
+    
     """#def 隣接する同じペアをまとめる"""
     
     def merge_by_pair(pairid, gdf, t1t2num):
@@ -134,31 +139,32 @@ def main(line_shp_path, out_dir):
     
     """処理開始"""
     
-    #ペアをアップデート
-    #T2
-    to_removes=[]
-    to_merge = []
-    pair_list = list(set(gdf_T2s.Pair.values))
-    for pair in pair_list:
-      gdf_merge, inters_to_remove = merge_by_pair(pair, gdf_T2s, 2)
-      to_merge.append(gdf_merge)
-      to_removes.append(inters_to_remove)
-    
-    to_removes_all = flatten_list(to_removes)
-    
-    #merge
-    gdf_merge_all = pd.concat(to_merge)
-    #remove empty
-    gdf_merge_all = gdf_merge_all[~gdf_merge_all['geometry'].is_empty]
-    #remove multiline
-    single_gdf = multi2single(gdf_merge_all)
-    
-    #gdf更新
-    gdf_T_non = gdf_T2s[~gdf_T2s['geometry'].isin(to_removes_all)]
-    gdf_concat = pd.concat([gdf_T_non, single_gdf])
-    gdf_concat["length"] = gdf_concat.geometry.length
-    
-    gdf_T2s = gdf_concat
+    #Updating pairs. # If there is no T2, pass to T1 processing.
+    if len(gdf_T2s) >0:
+        #T2
+        to_removes=[]
+        to_merge = []
+        pair_list = list(set(gdf_T2s.Pair.values))
+        for pair in pair_list:
+          gdf_merge, inters_to_remove = merge_by_pair(pair, gdf_T2s, 2)
+          to_merge.append(gdf_merge)
+          to_removes.append(inters_to_remove)
+        
+        to_removes_all = flatten_list(to_removes)
+        
+        #merge
+        gdf_merge_all = pd.concat(to_merge)
+        #remove empty
+        gdf_merge_all = gdf_merge_all[~gdf_merge_all['geometry'].is_empty]
+        #remove multiline
+        single_gdf = multi2single(gdf_merge_all)
+        
+        #gdf更新
+        gdf_T_non = gdf_T2s[~gdf_T2s['geometry'].isin(to_removes_all)]
+        gdf_concat = pd.concat([gdf_T_non, single_gdf])
+        gdf_concat["length"] = gdf_concat.geometry.length
+        
+        gdf_T2s = gdf_concat
     
     #T1
     pair_list = list(set(gdf_T1s.Pair.values))
@@ -195,10 +201,10 @@ def main(line_shp_path, out_dir):
     
     
     """#Export"""
-    
+    gdf_fin = gdf_fin.set_crs(gpdf.crs,  allow_override=True)
     filename = os.path.basename(line_shp_path)[:-4]
     outfile = out_dir + "/" + filename + "_post.shp"
-    gdf_fin.to_file(outfile, crs = "EPSG:32648")
+    gdf_fin.to_file(outfile)
     
     
     end = time.time()

@@ -11,9 +11,7 @@ import itertools
 # import glob
 import collections
 
-# line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\11_connect_lines\centerlines_45_cut_cut2ls_45_connectSQ2\_centerlines_45_cut_cut2ls_merge_45_06_connect_sq.shp"
-# line_shp_path = sys.argv[1]
-# out_dir = r'D:\Malaysia\01_Brueprint\12_Pairing_terraces\2_cut\1_3cut'
+
 
 def main(line_shp_path, out_dir):
     def multi2single(gpdf_test):
@@ -310,8 +308,12 @@ def main(line_shp_path, out_dir):
     
     """#Export to shp"""
     gdf_export = gpd.GeoDataFrame(geometry=lines_after_cut)
-    gdf_export.crs = 'epsg:32648'
+    gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
+    # gdf_export.crs = 'epsg:32648'
     gdf_export["length"] = gdf_export.geometry.length
+    
+    ### Eliminate Points
+    gdf_export = gdf_export[gdf_export.geometry.type != 'Point']
     
     outfile = os.path.join(out_dir, os.path.basename(line_shp_path)[:-4] +f"_cut.shp")
     gdf_export.to_file(outfile)

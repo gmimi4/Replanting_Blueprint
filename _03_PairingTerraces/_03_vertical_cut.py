@@ -14,11 +14,6 @@ import rasterio
 from rasterstats import zonal_stats
 import time
 
-# line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/2_cut/2_2cut/centerlines_45_cut_cut2ls_merge_45_connect_merge_over5_road_sing_1_cut_cut2.shp'
-#line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/2_cut/2_2cut/lines_1_cut_cut2.shp'
-# line_shp_path=sys.argv[1]
-# dem_path = '/content/drive/MyDrive/Malaysia/Blueprint/DEM/02_R_Out/DEM_05m_R_kring.tif'
-# out_dir = r'D:\Malaysia\01_Brueprint\12_Pairing_terraces\4_vertical_cut'
 
 
 def main(line_shp_path, out_dir, dem_path):
@@ -60,7 +55,11 @@ def main(line_shp_path, out_dir, dem_path):
     crs = src.crs
     driver = src.driver
     
-    merged_geometries = shapely.ops.linemerge([shapely.geometry.shape(feature["geometry"]) for feature in src])
+    ## Multiline String object makes error
+    check_multi = [shapely.geometry.shape(feature["geometry"]) for feature in src]
+    check_multi = [l for l in check_multi if l.geom_type != "MultiLineString"]
+
+    merged_geometries = shapely.ops.linemerge(check_multi)
     
     schema = {
         "geometry": merged_geometries.geom_type,
@@ -81,7 +80,8 @@ def main(line_shp_path, out_dir, dem_path):
     
     #分離
     data_merged = {"geometry":[merged_geometries]}
-    gdf_merged = gpd.GeoDataFrame(data_merged, crs = "EPSG:32648")
+    gdf_merged = gpd.GeoDataFrame(data_merged)
+    gdf_merged = gdf_merged.set_crs(gpdf.crs, allow_override=True) 
     
     gdf_sep = gdf_merged.explode()
     gdf_sep["length"] = gdf_sep.geometry.length
@@ -142,7 +142,8 @@ def main(line_shp_path, out_dir, dem_path):
       geom_list.append(k)
     
     data = {"mean":mean_list, "max":max_list, "min":min_list, "std":std_list,"geometry":geom_list}
-    gdf_line_stats = gpd.GeoDataFrame(data, crs = "EPSG:32648")
+    gdf_line_stats = gpd.GeoDataFrame(data)
+    gdf_line_stats = gdf_line_stats.set_crs(gpdf.crs, allow_override=True)
     gdf_line_stats["length"] = gdf_line_stats.geometry.length
     
     """mean順に上から並べる
@@ -343,7 +344,8 @@ def main(line_shp_path, out_dir, dem_path):
               gp_ind = gdf_c.LineID.values[0]
               #gdfに変換
               data_cut = {"geometry":cut_line_strings, "Group":gp_cut, "Processed":1, "LineID":gp_ind} #処理済みを入れる
-              gdf_cut = gpd.GeoDataFrame(data_cut, crs = "EPSG:32648")
+              gdf_cut = gpd.GeoDataFrame(data_cut)
+              gdf_cut = gdf_cut.set_crs(gpdf.crs, allow_override=True)
     
               # inters_T2[ti]をgdfから抜いて、cut_line_stringsに置き換える
               gdf_sort.drop(gdf_sort.loc[gdf_sort["geometry"] == inters_T2[ti]].index, inplace=True) #古いライン削除
@@ -362,7 +364,7 @@ def main(line_shp_path, out_dir, dem_path):
     
     #同じラインが生成されているぽい（Arcで確認したところ）.重複削除
     gdf_sort_unique = gdf_sort.drop_duplicates()
-    gdf_sort_unique
+
     
     # #Ploting
     # fig, ax = plt.subplots(figsize=(5, 5))
@@ -386,9 +388,11 @@ def main(line_shp_path, out_dir, dem_path):
     
     """#Export"""
     
+    gdf_sort_unique = gdf_sort_unique.set_crs(gpdf.crs, allow_override=True)
     filename = os.path.basename(line_shp_path)[:-4]
     outfile = os.path.join(out_dir, filename + "_vertical.shp")
-    gdf_sort_unique.to_file(outfile, crs = "EPSG:32648")
+    gdf_sort_unique.to_file(outfile) #crs = "EPSG:32648"
+    
     
     end = time.time()
     diff_time = end -start

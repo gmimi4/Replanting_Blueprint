@@ -2,6 +2,7 @@
 
 import os
 import rasterio
+from rasterio import features
 import geopandas as gpd
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -12,11 +13,7 @@ from shapely.geometry import Point, LineString, Polygon,MultiPoint, MultiLineStr
 import shapely
 import time
 
-# line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/4_vertical_cut/centerlines_45_cut_cut2ls_merge_45_connect_merge_over5_road_sing_1_cut_cut2_vertical.shp'
-# line_shp_path = sys.argv[1]
-# dem_path = '/content/drive/MyDrive/Malaysia/Blueprint/DEM/02_R_Out/DEM_05m_R_kring.tif'
-# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/13_Generate_points/01_put_direction'
-# os.makedirs(tmp_dir2, exist_ok=True)
+
 
 def main(line_shp_path, dem_path, out_dir):
     
@@ -75,7 +72,8 @@ def main(line_shp_path, dem_path, out_dir):
     
     #分離
     data_merged = {"geometry":[merged_geometries]}
-    gdf_merged = gpd.GeoDataFrame(data_merged, crs = "EPSG:32648")
+    gdf_merged = gpd.GeoDataFrame(data_merged)
+    gdf_merged = gdf_merged.set_crs(gpdf.crs, allow_override=True)
     
     
     """#ラスター化(def使わず)"""
@@ -150,10 +148,10 @@ def main(line_shp_path, dem_path, out_dir):
     
     gpdf["direction"] = direction
     
-    
+
     filename = os.path.basename(line_shp_path)[:-4]
     outfile = out_dir + "/" + filename + "_dire.shp"
-    gpdf.to_file(outfile, crs = "EPSG:32648")
+    gpdf.to_file(outfile)
     
     
     end = time.time()

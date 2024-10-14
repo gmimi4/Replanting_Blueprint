@@ -10,16 +10,16 @@ import geopandas as gpd
 import pandas as pd
 import time
 
-# in_dir = r'D:\Malaysia\01_Brueprint\13_Generate_points"
-# road_shp =r"D:\Malaysia\01_Brueprint\11_Roads\roads_buff_25m.shp"
 
-def main(in_dir, road_shp):
+
+def main(in_dir, road_shp, close_thre):
     start = time.time()
     
     """# merge"""
     shps = glob.glob(os.path.join(in_dir, "*.shp"))
-    shps = [s for s in shps if os.path.basename(s)[:-4].startswith("lines")]
-    out_dir = in_dir
+
+    out_dir = in_dir + os.sep + f"merge_{close_thre}m"
+    os.makedirs(out_dir, exist_ok=True)
 
     gdfs = [gpd.read_file(shp) for shp in shps]
     merged_gdf = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True), crs=gdfs[0].crs)
@@ -27,7 +27,7 @@ def main(in_dir, road_shp):
 
     """# Delete points within 6ft from road # a little bit shorter than 6ft
     """
-    close_limit = 4 #m以内にあるポイントは削除
+    close_limit = close_thre# 4 #m以内にあるポイントは削除
 
     #add Processed field
     merged_gdf["Processed"]=0
@@ -37,7 +37,8 @@ def main(in_dir, road_shp):
     gdf_points = merged_gdf
     gdf_road = gpd.read_file(road_shp)
     #bufferつくる
-    road_distance = 6*0.3000 #6*0.3048 #m換算 ##buffer上のポイントは残すため少し小さめにつくる
+    # road_distance = 6*0.3000 #6*0.3048 #m換算 ##buffer上のポイントは残すため少し小さめにつくる
+    road_distance = 6*0 #rev not eliminate points within 6ft unless endpoints
     road_buff = gdf_road.buffer(road_distance)
     gdf_road_buff = gpd.GeoDataFrame(geometry=road_buff)
 
@@ -63,7 +64,9 @@ def main(in_dir, road_shp):
       # print(i)
       if row.Processed != 1:
         buff_poly = row.buffer
-        gdf_buff = gpd.GeoDataFrame({"geometry":[buff_poly]},crs = "EPSG:32648")
+        gdf_buff = gpd.GeoDataFrame({"geometry":[buff_poly]})
+        gdf_buff = gdf_buff.set_crs(merged_gdf.crs, allow_override=True)
+        
         points_within = gpd.sjoin(valid_ps, gdf_buff, predicate='within')
         points_within_list = points_within.geometry.tolist()
         points_valid = [p for p in points_within_list if p != row.geometry]
@@ -85,8 +88,10 @@ def main(in_dir, road_shp):
     gdf = gpd.GeoDataFrame(geometry=geometry, columns=['geometry'])
 
     #Final Export
+    gdf = gdf.set_crs(merged_gdf.crs, allow_override=True)
     outfile = os.path.join(out_dir, "merge_all_points_6ftfin.shp")
-    gdf.to_file(outfile, crs="EPSG:32648")
+    gdf.to_file(outfile)
+    
     
     end = time.time()
     diff_time = end -start

@@ -17,16 +17,9 @@ from rasterio.features import shapes
 mask = None
 import time
 
-epsg_code = 32648
-with rasterio.Env(OSR_WKT_FORMAT="WKT2_2018"):
-    rio_crs = CRS.from_epsg(epsg_code)
-    proj_crs = CRS.from_user_input(rio_crs)
 
 
-# img_path = r"D:\Malaysia\01_Brueprint\09_Classification\2_prediction\OUT\mosaic.tif"
-# out_dir = r"D:\Malaysia\01_Brueprint\09_Classification\3_dilation"
-
-def main(img_path, out_dir):
+def main(img_path, out_dir,size_e, size_d):
     start = time.time()
     
     img_array = rasterio.open(img_path).read(1)
@@ -37,32 +30,30 @@ def main(img_path, out_dir):
     # cmap.set_bad(color='black')
     cmap.set_under(color='grey')
     cmap.set_over('White')
-    
     # plt.imshow(img_array_rev, cmap=cmap, vmin=3, vmax=9) #White is 10
     
-    ## => erodsion by 5*5 kernel -> dilation by 2*2 kernel
-    
     ### EROSION ###
-    size_e = 5
+    # size_e = 5
     kernel = np.ones((size_e,size_e),np.uint8)
     erosion5 = cv2.erode(img_array_rev,kernel,iterations = 1)
     
     ### DILATION ###
-    size_d = 2
+    # size_d = 2
     kernel = np.ones((size_d,size_d),np.uint8)
     dilation3 = cv2.dilate(erosion5,kernel,iterations = 1)
     
     
     with rasterio.open(img_path) as src:
+            crs = src.crs
+            epsg_code = crs.to_epsg()
             kwargs = src.meta
             kwargs.update(
             driver = "GTiff",
             dtype=rasterio.float32,
-            crs = proj_crs,
             count = 1
             )
     
-            out_file = out_dir + "\\"+ Path(img_path).stem + f"_e{size_e}_d{size_d}.tif"
+            out_file = out_dir + os.sep + Path(img_path).stem + f"_e{size_e}_d{size_d}.tif"
             with rasterio.Env(OSR_WKT_FORMAT="WKT2_2018"):
                 with rasterio.open(out_file, 'w', **kwargs) as dst:
                     dst.write(dilation3, 1)

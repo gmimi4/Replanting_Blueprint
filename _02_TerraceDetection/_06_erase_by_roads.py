@@ -23,7 +23,8 @@ def main(in_dir, out_dir, road_line):
     line_shps = glob.glob(in_dir+"\\*.shp")
     line_gdfs = [gpd.read_file(shp) for shp in line_shps]
     
-    outfile = "centerlines_45_cut_cut2ls_merge_45_connect_sq2_road.shp"
+    # outfile = "centerlines_45_cut_cut2ls_merge_45_connect_sq2_road.shp"
+    outfile = os.path.basename(line_shps[0])[:-4] + "_road.shp"
     
     
     """#merge"""
@@ -64,13 +65,14 @@ def main(in_dir, out_dir, road_line):
     
     """#if delete short line (not applicable here)"""
     gdf_single = gpd.GeoDataFrame({"geometry":lines})
+    gdf_single = gdf_single.set_crs(gdf_roadline.crs, allow_override=True)
     
     gdf_single["length"] = gdf_single.geometry.length
 
     gdf_erasedline = gdf_single
     
     #Export
-    gdf_erasedline.to_file(out_dir+"\\" + outfile, crs="EPSG:32648")
+    gdf_erasedline.to_file(out_dir+"\\" + outfile) #crs="EPSG:32648"
     
     end = time.time()
     diff_time = end -start

@@ -11,18 +11,19 @@ import geopandas as gpd
 import subprocess
 import time
 
+# ----------------------------------------------------------
+### Please set arcpy_path, py_path and gdb path in the code
+# ----------------------------------------------------------
 
-image_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\3_dilation\mosaic_e5_d2_clip.tif"
-out_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\4_centerlines"
-epsg_use = 32648
-
-def main(image_path, out_dir, epsg_use):
+def main(image_path, clip_shp, out_dir, clip_bool=True):
     start = time.time()
     """
     # Convert raster to polygon
     """
     src = rasterio.open(image_path)
     arr = src.read(1)
+    crs = src.crs
+    epsg_use = crs.to_epsg()
     
     transform = src.transform
     shapes_list = list(shapes(arr, mask=None, transform=transform))
@@ -32,8 +33,16 @@ def main(image_path, out_dir, epsg_use):
     polygons_gdf.set_crs(epsg=epsg_use, inplace=True)
     
     # export polygonized raster to raster directory
-    outpoly = image_path.replace(".tif", ".shp")
-    polygons_gdf.to_file(outpoly)
+    outpoly = image_path.replace(".tif", ".shp") #output in tif dir
+    
+    ## clip
+    if clip_bool:
+        gdf_clip = gpd.read_file(clip_shp)
+        clip_poly = polygons_gdf.clip(gdf_clip.geometry)
+        clip_poly.to_file(outpoly)
+    
+    else:
+        polygons_gdf.to_file(outpoly)
     
     
     """
@@ -41,10 +50,12 @@ def main(image_path, out_dir, epsg_use):
     """
     ## use arcgis at present #excute in command
     arcpy_path = r'C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy' # set your ArcGIS path
-    py_path = r'C:\Users\chihiro\Desktop\Python\Blueprint\Terrace_detection\for_local_processing\_01_vectorize_centerlines_arctool.py'
-    
-    process = subprocess.run([arcpy_path, py_path], stdout=subprocess.PIPE, shell=True)
-    print("centerlines created")
+    ## set polygon path!!!
+    py_path = r"path to _02_TerraceDetection\_01_vectorize_centerlines_arctool.py"
+    ## set gdb path
+    gdb = r"path to .gdb"
+
+    process = subprocess.run([arcpy_path, py_path, outpoly, out_dir, gdb], stdout=subprocess.PIPE, shell=True)
 
     end = time.time()
     time_diff = end - start

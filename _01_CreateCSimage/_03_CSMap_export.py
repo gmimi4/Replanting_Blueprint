@@ -10,20 +10,14 @@ import os
 import math
 from osgeo import gdal
 import numpy as np
-# import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import time
 
-# slope_raster = r"D:\Malaysia\01_Brueprint\07_SLOPE\SLOPE_05m_R_kring.tif"
-# curve_raster = r"D:\Malaysia\01_Brueprint\06_Curve\DEM_05m_R_kring_curv.tif"
-# out_dir = r'D:\Malaysia\01_Brueprint\08_CSMap'
-# epsg_code = 32647
 
-
-def main(slope_raster, curve_raster, out_dir, epsg_code):
+def main(slope_raster, curve_raster, out_dir):
     start = time.time()
     
-    tmp_dir = out_dir + "\\_tmp"
+    tmp_dir = out_dir + os.sep + "_tmp"
     os.makedirs(tmp_dir,exist_ok=True)
     slope_name = os.path.basename(slope_raster)[:-4]
     curve_name = os.path.basename(curve_raster)[:-4]
@@ -47,7 +41,7 @@ def main(slope_raster, curve_raster, out_dir, epsg_code):
     curve_arr_remove = curve_arr_ori
     
     
-    """#重ねてRGBへ 案2 採用"""
+    """#to RGB"""
     #slope
     sm = cm.ScalarMappable(norm=None, cmap=cm.Reds)
     slope_array = sm.to_rgba(slope_arr_remove, alpha=0.8,bytes=True)
@@ -62,7 +56,6 @@ def main(slope_raster, curve_raster, out_dir, epsg_code):
     #for check
     # cs_img.save(os.path.join(out_dir,cs_name[:-4]+".png"))
     
-    # GeoTiffへ; https://stackoverflow.com/questions/33537599/how-do-i-write-create-a-geotiff-rgb-image-file-in-python
     out_path = os.path.join(out_dir, cs_name)
     
     #  Set the Pixel Data

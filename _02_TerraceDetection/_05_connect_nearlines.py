@@ -12,14 +12,7 @@ import itertools
 import glob
 import time
 
-# from sympy import Point, Line
 
-# line_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided_cut2lis"
-# linelist = glob.glob(os.path.join(line_dir,"*.shp"))
-
-# out_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\11_connect_lines\_test'
-
-# line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\2nd_iterration\_divided_cut2lis\centerlines_45_cut_cut2ls_merge_45_03.shp"
 def main(line_shp_path, out_dir):
     start = time.time()
     tmp_dir = os.path.dirname(out_dir) +'/_tmp'
@@ -28,7 +21,7 @@ def main(line_shp_path, out_dir):
     for t in tmps:
         os.remove(t)
         
-    # line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided_cut2lis\centerlines_45_cut_cut2ls_merge_45_06.shp"
+
     filename = os.path.basename(line_shp_path)[:-4]
     
     gpdf = gpd.read_file(line_shp_path)
@@ -209,7 +202,7 @@ def main(line_shp_path, out_dir):
         
         distance_list = [distance1, distance2, distance3, distance4]
         distance = min(distance_list)
-        # distance_idx = distance_list.index(min(distance_list))
+
     
         if distance >0 and distance < li_li_distance: #元からくっついてるのは何もしない
           #ポイント2つ抽出して新しいLine stringにする
@@ -252,7 +245,7 @@ def main(line_shp_path, out_dir):
     
 
     gdf_export = gpd.GeoDataFrame(geometry=line_results)
-    gdf_export.crs = 'epsg:32648'
+    gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
     gdf_export["length"] = gdf_export.geometry.length
     
     outfile = os.path.join(out_dir, f"_{filename}_connect_sq.shp")

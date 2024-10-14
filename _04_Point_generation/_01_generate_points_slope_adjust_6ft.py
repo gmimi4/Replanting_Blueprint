@@ -8,9 +8,7 @@ import numpy as np
 import math
 import time
 
-# line_shp_path = r'D:\\Malaysia\\01_Brueprint\\12_Pairing_terraces\\5_pairing\\_post\\_direction\\lines_2_cut_cut2_vertical_post_T1T2_post_dire.shp'
-# road_shp = r"D:\Malaysia\01_Brueprint\11_Roads\roads_buff_25m.shp"
-# out_dir = r'D:\Malaysia\01_Brueprint\13_Generate_points\_test'
+
 
 
 def main(line_shp_path, road_shp, out_dir):
@@ -620,7 +618,10 @@ def main(line_shp_path, road_shp, out_dir):
               break
             else:
               continue
-          line_t1 = sel_t1 #line_t1更新
+          try:
+              line_t1 = sel_t1 #line_t1更新
+          except:
+              line_t1 = line_t1 #no change
     
         ### つぎに返る距離調べる
         if len(start_point.xy[0]) ==0: #謎のstart_pointが入っていない事象
@@ -700,7 +701,7 @@ def main(line_shp_path, road_shp, out_dir):
     points_all_T1 = []
     ######### Plot on T1
     for line_t1 in t1_list:
-      #test line_t1 = gdf_T1s[gdf_T1s.Pair==226].geometry.loc[79]
+      #test line_t1 = gdf_T1s[gdf_T1s.Pair==1159].geometry.loc[304]
     
       direction = gdf_T1s[gdf_T1s.geometry==line_t1].direction.values[0]
     
@@ -777,7 +778,8 @@ def main(line_shp_path, road_shp, out_dir):
     points_T1T2_valid = [p for p in points_T1T2_set if not p.is_empty]
     
     #Processedを入れるためgdfにする
-    gdf_points = gpd.GeoDataFrame({"geometry":points_T1T2_valid, "Processed":0, "del":0}, crs = "EPSG:32648")
+    gdf_points = gpd.GeoDataFrame({"geometry":points_T1T2_valid, "Processed":0, "del":0})
+    gdf_points = gdf_points.set_crs(gdf_line.crs, allow_override=True)
     
     #bufferをつくる #*m
     gdf_points['buffer'] = gdf_points['geometry'].buffer(4)
@@ -793,11 +795,13 @@ def main(line_shp_path, road_shp, out_dir):
     #export points
     geometry = gpd.GeoSeries(points_T1T2_fin)
     gdf = gpd.GeoDataFrame(geometry=geometry, columns=['geometry'])
+    gdf = gdf.set_crs(gdf_line.crs, allow_override=True)
+    
     # Output shapefile path
     filename = os.path.basename(line_shp_path)[:-4]
     output_shapefile_path = os.path.join(out_dir,f"{filename}_allpoints.shp")
     # Export the GeoDataFrame to a shapefile
-    gdf.to_file(output_shapefile_path, crs="EPSG:32648")
+    gdf.to_file(output_shapefile_path)
     
     end = time.time()
     diff_time = end -start

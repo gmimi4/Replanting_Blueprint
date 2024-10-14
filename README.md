@@ -1,12 +1,11 @@
 # Replanting Blueprint
 This program was developed on Windows.
-You may need to change code to set path to files depending on your work environment.
+You need to change path to associated files in the codes depending on your work environment.
 This progarm utilizes arcpy in creating slope, curvature and vectorizing line images. These steps will replace arcpy with open source libraries in the future.
-This program sets the spatial coordinate system as WGS 84/UTM zone 48N (epsg:32648)
+Deep learning programs will be shared when it gets ready.
 
 ## Creation of CS image (_01_CreateCSimage)
 Please run codes in "run_CSimg.py"
-The followings provide small notes for each code in the steps.
 
 You need DEM for initiating the program
 - _01_Gaussian.py
@@ -16,11 +15,8 @@ You need DEM for initiating the program
 - _03_CSMap_export.py
 
 ## Terrace detection by deep learning (_02_TerraceDetection)
-This program provides a trained model. However, please note that the trained model still needs improvement.
-You will see insufficient segmentation result by the current model. In such case, you need to train a new model or apply other detection methods.
-
-After terraces were segmented, please run Please run codes in "run_terrace_detection.py"
-The followings provide small notes for each code in the steps.
+Deep learning programs will be shared when it gets ready.
+After terraces were segmented, run "run_terrace_detection.py"
 
 - _00_dilation.py
 - _01_vectorize_centerlines.py
@@ -68,5 +64,3 @@ Please run codes in "run_point_generation.py"
   * This code avoids generating points within 6 feet from road edges.
 - _02_mege_and_eliminate_points.py
   * This code merges all generated points and eliminates too close points within 4 m each other.
-- _03_shift_points.py
-  * This code shifts points to 3 feet from the wall of terraces.

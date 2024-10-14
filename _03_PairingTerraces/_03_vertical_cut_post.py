@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Process lines which have gone in vertical cut process
+Process lines which have gone in the previous vertical cut process
 """
 
 import math
@@ -15,10 +15,6 @@ import rasterio
 from rasterstats import zonal_stats
 import time
 
-# before_cut_linepath = sys.argv[1]
-# before_cut_linepath = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/2_cut/2_2cut/lines_17_cut_cut2.shp'
-# after_cut_dir = r"D:\Malaysia\01_Brueprint\12_Pairing_terraces\4_vertical_cut"
-# dem_path = '/content/drive/MyDrive/Malaysia/Blueprint/DEM/02_R_Out/DEM_05m_R_kring.tif'
 
 
 def main(before_cut_linepath, after_cut_dir, dem_path):
@@ -53,8 +49,8 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
     
     """gdfにする"""
     
-    gpdf_before = gpd.read_file(before_cut_linepath, crs = "EPSG:32648")
-    gpdf_after = gpd.read_file(after_cut_linepath, crs = "EPSG:32648")
+    gpdf_before = gpd.read_file(before_cut_linepath)
+    gpdf_after = gpd.read_file(after_cut_linepath)
     
     """intersectを調べる"""
     
@@ -73,7 +69,8 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
     
     ### gdfに戻す
     data = {"geometry":lines_rev}
-    gdf_difference_rev = gpd.GeoDataFrame(data, crs = "EPSG:32648")
+    gdf_difference_rev = gpd.GeoDataFrame(data) # crs = "EPSG:32648"
+    gdf_difference_rev = gdf_difference_rev.set_crs(gpdf_before.crs, allow_override=True)
     gdf_difference_rev["length"] = gdf_difference_rev.geometry.length
     
     """beforeは線をつなげる処理までしてからintersectを調べるver
@@ -98,7 +95,11 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
     crs = src.crs
     driver = src.driver
     
-    merged_geometries = shapely.ops.linemerge([shapely.geometry.shape(feature["geometry"]) for feature in src])
+    ## Multiline String object makes error
+    check_multi = [shapely.geometry.shape(feature["geometry"]) for feature in src]
+    check_multi = [l for l in check_multi if l.geom_type != "MultiLineString"]
+    # merged_geometries = shapely.ops.linemerge([shapely.geometry.shape(feature["geometry"]) for feature in src])
+    merged_geometries = shapely.ops.linemerge(check_multi)
     
     schema = {
         "geometry": merged_geometries.geom_type,
@@ -119,7 +120,8 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
     
     #分離
     data_merged = {"geometry":[merged_geometries]}
-    gdf_merged = gpd.GeoDataFrame(data_merged, crs = "EPSG:32648")
+    gdf_merged = gpd.GeoDataFrame(data_merged)
+    gdf_merged = gdf_merged.set_crs(gpdf_before.crs, allow_override=True)
     
     gdf_sep = gdf_merged.explode()
     gdf_sep["length"] = gdf_sep.geometry.length
@@ -186,7 +188,8 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
       geom_list.append(k)
     
     data = {"mean":mean_list, "max":max_list, "min":min_list, "std":std_list,"geometry":geom_list}
-    gdf_line_stats = gpd.GeoDataFrame(data, crs = "EPSG:32648")
+    gdf_line_stats = gpd.GeoDataFrame(data)
+    gdf_line_stats = gdf_line_stats.set_crs(gpdf_before.crs, allow_override=True)
     gdf_line_stats["length"] = gdf_line_stats.geometry.length
     
     """mean順に上から並べる
@@ -411,7 +414,8 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
           gp_ind = gdf_c.LineID.values[0]
           #gdfに変換
           data_cut = {"geometry":cut_line_strings, "Group":gp_cut, "Processed":1, "LineID":gp_ind} #処理済みを入れる
-          gdf_cut = gpd.GeoDataFrame(data_cut, crs = "EPSG:32648")
+          gdf_cut = gpd.GeoDataFrame(data_cut)
+          gdf_cut = gdf_cut.set_crs(gpdf_before.crs, allow_override=True)
     
           #gdf_sort更新
           # inters_T2[ti]をgdfから抜いて、cut_line_stringsに置き換える
@@ -461,14 +465,16 @@ def main(before_cut_linepath, after_cut_dir, dem_path):
     """先にvertical cut済みのラインに挿入"""
     
     gdf_cut_done_list.append(gpdf_after)
-    gdf_cut_done_list = [g.to_crs("epsg:32648") for g in gdf_cut_done_list] #Colaboではいける
+    # gdf_cut_done_list = [g.to_crs("epsg:32648") for g in gdf_cut_done_list] #Colaboではいける
+    gdf_cut_done_list = [g.set_crs(gpdf_before.crs, allow_override=True) for g in gdf_cut_done_list]
     gdf_vertical_result = pd.concat(gdf_cut_done_list)
     
     
     """#Export"""
+    # gdf_vertical_result = gdf_vertical_result.set_crs(gpdf_before.crs, allow_override=True)
     filename = os.path.basename(after_cut_linepath)[:-4]
-    outfile = out_dir + "/" + filename + "_post.shp"
-    gdf_vertical_result.to_file(outfile, crs = "EPSG:32648")
+    outfile = out_dir + os.sep + filename + "_post.shp"
+    gdf_vertical_result.to_file(outfile) #crs = "EPSG:32648"
     
     
     end = time.time()

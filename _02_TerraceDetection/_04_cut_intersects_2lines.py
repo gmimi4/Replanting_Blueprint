@@ -11,18 +11,13 @@ import itertools
 # import glob
 import time
 
-# line_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\10_cut_by_intersect'
-# out_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\10_cut_by_intersect_2lines'
 
-# lines_list = glob.glob(line_dir+"/*.shp")
-# line_shp_path = sys.argv[1]
 
 def main(line_shp_path, out_dir):
     start = time.time()
     
     def multi2single(gpdf_test):
-        # gpdf_multiline = gpdf_test[gpdf_test.geometry.type == 'MultiLineString']
-    
+        
         exploded_all = gpdf_test.explode()
         exploded_reset = exploded_all.reset_index()
         columns_to_drop = ['level_0','level_1']
@@ -41,7 +36,6 @@ def main(line_shp_path, out_dir):
       single_lines = multi2single(gpdf)
       lines = list(single_lines.geometry.values)
     else:
-      # lines = [shape(line.geometry) for line in fiona.open(line_shp_path,'r')] #multiLinestringがなかったとき
       lines = gpdf.geometry.to_list()
     
     """# Angle threshold 角度で絞る"""
@@ -143,7 +137,7 @@ def main(line_shp_path, out_dir):
     """#Export to shp"""
     
     gdf_export = gpd.GeoDataFrame(geometry=cut_line_results)
-    gdf_export.crs = 'epsg:32648'
+    gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
     gdf_export["length"] = gdf_export.geometry.length
     
     outfile = os.path.join(out_dir, os.path.basename(line_shp_path)[:-4] +"_cut2ls.shp")

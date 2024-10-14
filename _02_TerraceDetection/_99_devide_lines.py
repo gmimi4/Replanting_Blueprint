@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Apr 19 15:37:13 2024
+Divide lines by H100 * W400 grids
 
 @author: chihiro
 """
@@ -17,9 +18,7 @@ from shapely.geometry import Point, LineString, Polygon,MultiPoint, MultiLineStr
 import time
 
 
-# line_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line'
-# out_dir = line_dir + os.sep + '_divided'
-# os.makedirs(out_dir, exist_ok=True)
+
 
 def main(line_dir, out_dir):
     start = time.time()
@@ -87,6 +86,7 @@ def main(line_dir, out_dir):
       line_centers = gpdf.geometry.centroid
       bool_idx = line_centers.within(g.geometry) #bool
       line_in = gpdf[bool_idx]
+      line_in = line_in.set_crs(gpdf.crs, allow_override=True)
       outfilename = os.path.join(out_dir, filename +f"_{str(i).zfill(length)}.shp")
       line_in.to_file(outfilename)
       

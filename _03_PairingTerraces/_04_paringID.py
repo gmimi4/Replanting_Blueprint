@@ -11,11 +11,7 @@ import rasterio
 from rasterstats import zonal_stats
 import time
 
-# line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/4_vertical_cut/centerlines_45_cut_cut2ls_merge_45_connect_merge_over5_road_sing_1_cut_cut2_vertical.shp'
-# line_shp_path = sys.argv[1]
-# dem_path = '/content/drive/MyDrive/Malaysia/Blueprint/DEM/02_R_Out/DEM_05m_R_kring.tif'
-# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/5_paring'
-# os.makedirs(tmp_dir2, exist_ok=True)
+
 
 def main(line_shp_path, dem_path, out_dir):
     
@@ -124,7 +120,8 @@ def main(line_shp_path, dem_path, out_dir):
       geom_list.append(k)
     
     data = {"mean":mean_list, "max":max_list, "min":min_list, "std":std_list,"LineID":LineID_list,"geometry":geom_list}
-    gdf_line_stats = gpd.GeoDataFrame(data, crs = "EPSG:32648")
+    gdf_line_stats = gpd.GeoDataFrame(data)
+    gdf_line_stats = gdf_line_stats.set_crs(gpdf.crs, allow_override=True)
     gdf_line_stats["length"] = gdf_line_stats.geometry.length
     
     """mean順に上から並べる
@@ -486,9 +483,10 @@ def main(line_shp_path, dem_path, out_dir):
     
     
     """#Export"""
+    gdf_sort = gdf_sort.set_crs(gpdf.crs, allow_override=True)
     filename = os.path.basename(line_shp_path)[:-4]
-    outfile = out_dir + "/" + filename + "_T1T2.shp"
-    gdf_sort.to_file(outfile, crs = "EPSG:32648")
+    outfile = out_dir + os.sep + filename + "_T1T2.shp"
+    gdf_sort.to_file(outfile)
     
     
     end = time.time()

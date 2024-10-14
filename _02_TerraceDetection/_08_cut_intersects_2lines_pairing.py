@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""02_cut_intersects_2lines_pairing.ipynb
-2本のラインのなす角が狭かったらエラーとして、短い方を(8m)バッファーで切る
+"""
+Cut shorter line if two lines intersct with a sharp angle
 """
 
 import os
@@ -10,13 +10,7 @@ import geopandas as gpd
 import numpy as np
 import itertools
 import glob
-# import glob
 
-# out_dir = r'D:\Malaysia\01_Brueprint\12_Pairing_terraces\2_cut\2_2cut'
-
-# lines_list = glob.glob(line_dir+"/*.shp")
-# line_shp_path = r"D:\Malaysia\01_Brueprint\12_Pairing_terraces\2_cut\1_3cut\_test\_centerlines_45_cut_cut2ls_merge_45_06_connect_sq_cut.shp"
-# line_shp_path = sys.argv[1]
 
 def main(line_shp_path, out_dir):
 
@@ -43,7 +37,6 @@ def main(line_shp_path, out_dir):
       single_lines = multi2single(gpdf)
       lines = list(single_lines.geometry.values)
     else: #no multiLinestring
-      # lines = [shape(line.geometry) for line in fiona.open(line_shp_path,'r')]
       lines = [g.geometry for i,g in gpdf.iterrows()]
     
     """#角度で絞る"""
@@ -207,8 +200,12 @@ def main(line_shp_path, out_dir):
     """#Export to shp"""
     
     gdf_export = gpd.GeoDataFrame(geometry=cut_line_results)
-    gdf_export.crs = 'epsg:32648'
+    gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
+    # gdf_export.crs = 'epsg:32648'
     gdf_export["length"] = gdf_export.geometry.length
+    
+    ### Eliminate Points
+    gdf_export = gdf_export[gdf_export.geometry.type != 'Point']
     
     outfile = os.path.join(out_dir, os.path.basename(line_shp_path)[:-4] +f"_cut2.shp")
     gdf_export.to_file(outfile)
