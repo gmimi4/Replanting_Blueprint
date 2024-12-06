@@ -20,15 +20,15 @@ os.makedirs(terrace_detection_dir, exist_ok=True)
 ### binary image is assigned with values of 10 and 0
 # 30 sec
 os.chdir('set path to ReplantingBlueprint')
-from _02_TerraceDetection import _00_dilation
+from _02_TerraceDetection import _00_dilation_swin
 
 img_path = "path to output image of deep learning" 
-out_dir = terrace_detection_dir + os.sep + "1_preparation"
+out_dir = terrace_detection_dir + os.sep + "00_preparation"
 os.makedirs(out_dir, exist_ok=True)
 size_erosion = 2
 size_dilation = 2
 #run
-_00_dilation.main(img_path, out_dir, size_erosion, size_dilation)
+_00_dilation_swin.main(img_path, out_dir, size_erosion, size_dilation)
 
 
 """# Extract line by skelton and dilation
@@ -36,7 +36,7 @@ _00_dilation.main(img_path, out_dir, size_erosion, size_dilation)
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _00_skelton
 
-image_path =  terrace_detection_dir + os.sep + "1_preparation" + os.sep + "out_extent3_binary_e2_d2.tif"
+image_path =  terrace_detection_dir + os.sep + "00_preparation" + os.sep + "out_extent3_binary_e2_d2.tif"
 clip_shp = "path to clipping shp"
 out_skelton_dir = terrace_detection_dir + os.sep + "00_preparation" + os.sep + "_skelton"
 #run
