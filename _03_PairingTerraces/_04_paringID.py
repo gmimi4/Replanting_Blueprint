@@ -11,7 +11,11 @@ import rasterio
 from rasterstats import zonal_stats
 import time
 
-
+# line_shp_path = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/4_vertical_cut/centerlines_45_cut_cut2ls_merge_45_connect_merge_over5_road_sing_1_cut_cut2_vertical.shp'
+# line_shp_path = sys.argv[1]
+# dem_path = '/content/drive/MyDrive/Malaysia/Blueprint/DEM/02_R_Out/DEM_05m_R_kring.tif'
+# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/12_Pairing_terraces/5_paring'
+# os.makedirs(tmp_dir2, exist_ok=True)
 
 def main(line_shp_path, dem_path, out_dir):
     
@@ -271,8 +275,15 @@ def main(line_shp_path, dem_path, out_dir):
       if gdf_sort.loc[gdf_sort.geometry==lin]["Processed"].values[0]==0:
         neardict = distance_from_center_to_lines(lin, gdf_sort) #タプルで返される(linestring, 辞書)
         
+        ## ensure len(neardict)>0
+        if len(neardict)==0:
+            self_idx = gdf_sort.loc[gdf_sort.geometry == lin].index[0]
+            gdf_sort.loc[self_idx,"T1T2"] = 1
+            gdf_sort.loc[self_idx,"INFIL"] = 1
+            gdf_sort.loc[self_idx,"Processed"] = 1
+        
         ### if nearest distance >14.69, it's infilling
-        if neardict[0][1]["distance"] >14.69:
+        elif neardict[0][1]["distance"] >14.69:
             self_idx = gdf_sort.loc[gdf_sort.geometry == lin].index[0]
             gdf_sort.loc[self_idx,"T1T2"] = 1
             gdf_sort.loc[self_idx,"INFIL"] = 1

@@ -10,7 +10,11 @@ import itertools
 import time
 
 
-def main(line_shp_path, out_dir):
+# line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\4_centerlines\centerlines.shp"
+# out_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line"
+# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/Terrace_detection/10_cut_intersects_2lines'
+
+def main(line_shp_path, out_dir, minlen):
     start = time.time() 
     
     # MultiLineString to single
@@ -93,7 +97,7 @@ def main(line_shp_path, out_dir):
     inters_pair2 = []
     inters2 = []
     for i in  inters_pair:
-      if i[1].length > 15 and i[2].length > 15:
+      if i[1].length > minlen and i[2].length > minlen:
         pass
       else:
         inters_pair2.append(i)

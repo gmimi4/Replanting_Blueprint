@@ -6,7 +6,6 @@ Cut 3 intersecting and shorted line by 8 m
 import os
 from shapely.geometry import Point, LineString, Polygon,MultiPoint, MultiLineString
 from shapely.geometry import shape
-import fiona
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -14,6 +13,14 @@ import itertools
 import glob
 import collections
 import time
+
+# line_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided'
+# out_dir = r'D:\Malaysia\01_Brueprint\09_Terrace_detection\10_cut_by_intersect'
+# epsg_use = 'epsg:32648'
+
+# lines_list = glob.glob(line_dir+"/*.shp")
+# line_shp_path = lines_list[10]
+# # line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line\_divided\centerlines_45_00.shp"
 
 
 def main(line_shp_path, out_dir):
@@ -37,9 +44,10 @@ def main(line_shp_path, out_dir):
       single_lines = multi2single(gpdf)
       lines = list(single_lines.geometry.values)
     else:
-      lines = [shape(line.geometry) for line in fiona.open(line_shp_path,'r')] #multiLinestringがなかったとき
-
+      lines = [li.geometry for row, li in gpdf.iterrows()] #No multiLinestring
     
+    ## remove None type
+    lines = [li for li in lines if li is not None]
     """#　Collect 3 lines and their intersection"""    
     inters_pair = []
     inters_lines = []

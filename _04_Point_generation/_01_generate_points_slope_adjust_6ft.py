@@ -8,7 +8,9 @@ import numpy as np
 import math
 import time
 
-
+# line_shp_path = r"E:\Malaysia\01_Blueprint\Pegah_san\05_Pairing_terraces_rev_skelton\03_direction\_lines_16_cut_cut2ls_connect_sq_cut_cut2_vertical_post_T1T2_post_dire.shp"
+# road_shp = r"D:\Malaysia\01_Brueprint\11_Roads\roads_buff_25m.shp"
+# out_dir = r'D:\Malaysia\01_Brueprint\13_Generate_points\_test'
 
 
 def main(line_shp_path, road_shp, out_dir):
@@ -587,7 +589,11 @@ def main(line_shp_path, road_shp, out_dir):
       ######## Plot on T2
       start_point = p0_
       points_lineT2 = [p0_, p0_end]
+      
       for i in range(num_pointsT2):
+        ## ensure no empty point
+        points_lineT2 = [p for p in points_lineT2 if not p.is_empty]
+          
         adji = num_pointsT2 -i #n th from last
         
         if i >=2 and len(points_lineT2)>4: #points_lineT2 already has 2 points

@@ -38,7 +38,9 @@ from _02_TerraceDetection import _00_skelton
 
 image_path =  terrace_detection_dir + os.sep + "00_preparation" + os.sep + "out_extent3_binary_e2_d2.tif"
 clip_shp = "path to clipping shp"
-out_skelton_dir = terrace_detection_dir + os.sep + "00_preparation" + os.sep + "_skelton"
+out_dir = terrace_detection_dir + os.sep + "00_preparation"
+out_skelton_dir = out_dir + os.sep + "_skelton"
+os.makedirs(out_skelton_dir, exist_ok=True)
 #run
 _00_skelton.main(image_path, clip_shp, out_skelton_dir)
 
@@ -75,8 +77,9 @@ pagenum = #1 #If you divide target areas into blocks
 line_shp_path = terrace_detection_dir + os.sep + "01_centerlines" + os.sep + f"extent{pagenum}" + os.sep + "centerlines_back.shp"
 out_dir = terrace_detection_dir + os.sep + "02_filterd_line" + os.sep + f"extent{pagenum}"
 os.makedirs(out_dir, exist_ok=True)
+minlen = 8
 
-_02_filtering_by_intersects.main(line_shp_path, out_dir)
+_02_filtering_by_intersects.main(line_shp_path, out_dir, minlen)
 
 
 
