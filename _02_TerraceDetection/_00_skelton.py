@@ -30,7 +30,7 @@ def main(image_path, clip_poly, out_skelton_dir):
     
         out_dir = os.path.dirname(image_path)
         filename = os.path.basename(image_path)[:-4]
-        output_file = out_dir + f"\\{filename}_clip.tif"
+        output_file = out_dir + os.sep + f"{filename}_clip.tif"
         
         meta.update({
             "height": clipped.shape[1],

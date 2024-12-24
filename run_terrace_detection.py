@@ -27,8 +27,9 @@ out_dir = terrace_detection_dir + os.sep + "00_preparation"
 os.makedirs(out_dir, exist_ok=True)
 size_erosion = 2
 size_dilation = 2
+thre = 0.025 #threhold for swin output
 #run
-_00_dilation_swin.main(img_path, out_dir, size_erosion, size_dilation)
+_00_dilation_swin.main(img_path, out_dir, size_erosion, size_dilation, thre)
 
 
 """# Extract line by skelton and dilation

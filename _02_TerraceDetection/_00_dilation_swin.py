@@ -18,16 +18,14 @@ mask = None
 import time
 
 
-# img_path = r"E:\Malaysia\01_Blueprint\Pegah_san\03_UNet\OUT_swinBi\_mosaic\swinBi_mosaic.tif"
-# out_dir = os.path.dirname(img_path)
 
-def main(img_path, out_dir,size_e, size_d):
+def main(img_path, out_dir,size_e, size_d, thre):
     start = time.time()
     
     img_array = rasterio.open(img_path).read(1)
     
     """ # filtering by threshold """
-    thre = 0.025#0.03
+    # thre = 0.025#0.03
     thre_str = str(thre).replace(".","")
     """ #change terrace value to 10"""
     img_array_rev = np.where(img_array>=thre, 10,img_array)
@@ -79,10 +77,7 @@ def main(img_path, out_dir,size_e, size_d):
     
     gpd_polygonized_raster.crs = f"EPSG:{epsg_code}"
     
-    # output_shapefile_path = out_dir + os.sep + Path(input_ras).stem + ".shp"
-    # gpd_polygonized_raster.to_file(output_shapefile_path)
-    
-    
+        
     
     end = time.time()
     time_diff = end - start
