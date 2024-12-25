@@ -34,12 +34,12 @@ def main(img_path, out_dir,size_e, size_d, thre):
         
     ## => erodsion by 5*5 kernel -> dilation by 2*2 kernel
     ### EROSION ###
-    size_e = 2
+    #size_e = 2
     kernel = np.ones((size_e,size_e),np.uint8)
     erosion5 = cv2.erode(img_array_rev,kernel,iterations = 1)
     
     ### DILATION ###
-    size_d = 2
+    #size_d = 2
     kernel = np.ones((size_d,size_d),np.uint8)
     dilation3 = cv2.dilate(erosion5,kernel,iterations = 1)
     
