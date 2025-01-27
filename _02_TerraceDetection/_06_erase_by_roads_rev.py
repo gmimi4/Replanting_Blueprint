@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-connectしたラインをマージする、
-道路ポリゴンでerase、
-残り5m未満ラインを削除
-
-@author: chihiro
+Erase lines overlapping with roads
 """
 
 import os,sys
@@ -13,37 +9,30 @@ import glob
 import pandas as pd
 import time
 
-# in_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\11_connect_lines\centerlines_45_cut_cut2ls_45_connectSQ2"
-# out_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\11_connect_lines"
-# road_line = r"D:\Malaysia\01_Brueprint\11_Roads\roads_manual.shp"
 
 def main(in_dir, out_dir, road_line):
     start = time.time()
     
-    line_shps = glob.glob(in_dir+"\\*.shp")
+    line_shps = glob.glob(in_dir+ os.sep + "*.shp")
     line_gdfs = [gpd.read_file(shp) for shp in line_shps]
     
-    # outfile = "centerlines_45_cut_cut2ls_merge_45_connect_sq2_road.shp"
     outfile = os.path.basename(line_shps[0])[:-4] + "_road.shp"
     
     
     """#merge"""
     line_merge = pd.concat(line_gdfs)
-    #check
-    # line_merge.to_file(out_dir+"\\merge_check.shp")
     
     """#erase by road"""
-    #2m buffer supposed to road width
+    #2.5 m buffer supposed to road width
     gdf_roadline = gpd.read_file(road_line)
     ser_road = gdf_roadline.buffer(2.5)
     gdf_road = gpd.GeoDataFrame({"geometry":ser_road})
+    #Export
+    # gdf_road.to_file(os.path.dirname(road_line) + os.sep + "road_buff25.shp") #crs="EPSG:32648"
     
     gdf_erasedline = gpd.overlay(line_merge, gdf_road, how='difference')
-    #check
-    # gdf_erasedline.to_file(out_dir+"\\roaderase_check.shp")
     
     """#Multipart to single part"""
-    # MultiLineStringがあれば処理をする
     def multi2single(gpdf_test):
         gpdf_multiline = gpdf_test[gpdf_test.geometry.type == 'MultiLineString']
     
@@ -72,7 +61,7 @@ def main(in_dir, out_dir, road_line):
     gdf_erasedline = gdf_single
     
     #Export
-    gdf_erasedline.to_file(out_dir+"\\" + outfile) #crs="EPSG:32648"
+    gdf_erasedline.to_file(out_dir+ os.sep + outfile) #crs="EPSG:32648"
     
     end = time.time()
     diff_time = end -start

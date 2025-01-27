@@ -5,6 +5,7 @@ import glob
 from tqdm import tqdm
 import geopandas as gpd
 import pandas as pd
+from pathlib import Path
 
 
 """###### Detecting terraces ######"""
@@ -30,14 +31,16 @@ size_dilation = 2
 thre = 0.025 #threhold for swin output
 #run
 _00_dilation_swin.main(img_path, out_dir, size_erosion, size_dilation, thre)
-
+ 
+thre_str = str(thre).replace(".","")
+outdilationmame = Path(img_path).stem + f"_{thre_str}_e{size_erosion}_d{size_dilation}.tif"
 
 """# Extract line by skelton and dilation
 """
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _00_skelton
 
-image_path =  terrace_detection_dir + os.sep + "00_preparation" + os.sep + "out_extent3_binary_e2_d2.tif"
+image_path =  terrace_detection_dir + os.sep + "00_preparation" + os.sep + outdilationmame
 clip_shp = "path to clipping shp"
 out_dir = terrace_detection_dir + os.sep + "00_preparation"
 out_skelton_dir = out_dir + os.sep + "_skelton"
@@ -50,20 +53,14 @@ _00_skelton.main(image_path, clip_shp, out_skelton_dir)
 """#Vectorize for center lines using arcpy
 """
 # 1 min
-os.chdir('set path to ReplantingBlueprint')
-from _02_TerraceDetection import _01_vectorize_centerlines
-
-image_path = out_skelton_dir + os.sep + "*_skelton.tif" #file name of skeltonized img
-clip_shp = "path to clipping shp"
-out_dir = terrace_detection_dir + os.sep + "01_centerlines" + os.sep + "extent3"
+out_dir = terrace_detection_dir + os.sep + "01_centerlines"
 os.makedirs(out_dir, exist_ok=True)
 
 # -----------------------------------------------------------------------------------
+### !!! Please directly go to and RUN _01_vectorize_centerlines.py ### 
+# -----------------------------------------------------------------------------------
 ### !!! Please set arcpy path, pypath, gdb path in _01_vectorize_centerlines.py ### 
 # -----------------------------------------------------------------------------------
-##run
-_01_vectorize_centerlines.main(image_path, clip_shp, out_dir,clip_bool=True)
-
 
 
 """#Error removal """
@@ -74,11 +71,10 @@ _01_vectorize_centerlines.main(image_path, clip_shp, out_dir,clip_bool=True)
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _02_filtering_by_intersects
 
-pagenum = #1 #If you divide target areas into blocks
-line_shp_path = terrace_detection_dir + os.sep + "01_centerlines" + os.sep + f"extent{pagenum}" + os.sep + "centerlines_back.shp"
-out_dir = terrace_detection_dir + os.sep + "02_filterd_line" + os.sep + f"extent{pagenum}"
+line_shp_path = terrace_detection_dir + os.sep + "01_centerlines" + os.sep + "centerlines_back.shp"
+out_dir = terrace_detection_dir + os.sep + "02_filterd_line"
 os.makedirs(out_dir, exist_ok=True)
-minlen = 8
+minlen = 8 #shorter than this removed
 
 _02_filtering_by_intersects.main(line_shp_path, out_dir, minlen)
 
@@ -90,9 +86,8 @@ _02_filtering_by_intersects.main(line_shp_path, out_dir, minlen)
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _06_erase_by_roads
 
-pagenum = #1
 in_dir = out_dir
-out_dir_d2 = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "1_filtered_road" + os.sep + f"extent{pagenum}"
+out_dir_d2 = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "1_filtered_road"
 os.makedirs(out_dir_d2, exist_ok=True)
 road_line = "set your road line shp"
 
@@ -106,9 +101,8 @@ _06_erase_by_roads.main(in_dir, out_dir_d2, road_line)
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _99_devide_line_roads
 
-pagenum = #1
 line_shp = glob.glob(os.path.join(out_dir_d2,"*.shp"))[0]
-out_dir_d3 = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "2_divided_road" + os.sep + f"extent{pagenum}"
+out_dir_d3 = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "2_divided_road"
 os.makedirs(out_dir_d3, exist_ok=True)
 road_poly_shp = "set area polygon divided by roads" #polygon
 
@@ -116,16 +110,15 @@ _99_devide_line_roads.main(line_shp, out_dir_d3, road_poly_shp)
 
 
 
-"""#Cut 3 intersecting and shorted line by 8 m
+"""#3 intersecting and cut shortest line by 8 m
 """
-# 5min -> 10~20min
+# 10min
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _03_cut_intersects
 
-pagenum = #1
-line_dir = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "2_divided_road" + os.sep + f"extent{pagenum}"
+line_dir = terrace_detection_dir + os.sep + "03_filt_divided_road" + os.sep + "2_divided_road"
 # line_dir = out_dir_d3
-out_dir_d4 = terrace_detection_dir + os.sep + "03_cut_by_intersect" + os.sep + f"extent{pagenum}"
+out_dir_d4 = terrace_detection_dir + os.sep + "03_cut_by_intersect"
 os.makedirs(out_dir_d4, exist_ok=True)
 
 line_shps = glob.glob(line_dir +os.sep + "*shp")
@@ -133,16 +126,15 @@ for shp in tqdm(line_shps):
     _03_cut_intersects.main(shp, out_dir_d4)
 
 
-"""#Cut 2 intersecting and shorted line by 8 m
+"""#2 intersecting and cut shortest line by 8 m
 """
 # 1min
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _04_cut_intersects_2lines
     
-pagenum = #1
-out_dir_d4 = terrace_detection_dir + os.sep + "03_cut_by_intersect" + os.sep + f"extent{pagenum}"
+out_dir_d4 = terrace_detection_dir + os.sep + "03_cut_by_intersect"
 line_dir = out_dir_d4
-out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines" + os.sep + f"extent{pagenum}"
+out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines"
 os.makedirs(out_dir_d5, exist_ok=True)
 
 line_shps = glob.glob(line_dir +os.sep + "*shp")
@@ -153,8 +145,7 @@ for shp in tqdm(line_shps):
 """#merge #for check
 """
 # 1min
-pagenum = 1
-out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines" + os.sep + f"extent{pagenum}"
+out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines"
 line_dir = out_dir_d5
 out_dir_d5_ = line_dir + os.sep +"merge"
 os.makedirs(out_dir_d5_,exist_ok=True)
@@ -170,14 +161,13 @@ merged_gdf.to_file(out_mergefile, encoding='utf-8')
 
 """#Connect lines within 5m and angle 135<225 by Least square searching
 """
-#7min -> 15-20 min
+# 15-20 min
 os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _05_connect_nearlines
 
-pagenum = #1
-out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines" + os.sep + f"extent{pagenum}"
+out_dir_d5 = terrace_detection_dir + os.sep + "04_cut_by_intersect_2lines"
 line_dir = out_dir_d5
-out_dir_d6 = terrace_detection_dir + os.sep + "05_connect_lines" + os.sep + f"extent{pagenum}"
+out_dir_d6 = terrace_detection_dir + os.sep + "05_connect_lines"
 os.makedirs(out_dir_d6, exist_ok=True)
 
 line_shps = glob.glob(line_dir + os.sep + '*shp')
@@ -193,10 +183,10 @@ os.chdir('set path to ReplantingBlueprint')
 from _02_TerraceDetection import _07_cut_intersects_pairing
 
 pagenum = 1
-out_dir_d6 = terrace_detection_dir + os.sep + "05_connect_lines" + os.sep + f"extent{pagenum}"
+out_dir_d6 = terrace_detection_dir + os.sep + "05_connect_lines"
 #Line list before processing
 line_shps = glob.glob(out_dir_d6 + os.sep + "*.shp")
-out_dir_d7 = terrace_detection_dir + os.sep + "06_cut_by_intersect" + os.sep + "1_3cut" + os.sep + f"extent{pagenum}"
+out_dir_d7 = terrace_detection_dir + os.sep + "06_cut_by_intersect" + os.sep + "1_3cut"
 os.makedirs(out_dir_d7, exist_ok=True)
 
 for shp in tqdm(line_shps):

@@ -10,10 +10,6 @@ import itertools
 import time
 
 
-# line_shp_path = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\4_centerlines\centerlines.shp"
-# out_dir = r"D:\Malaysia\01_Brueprint\09_Terrace_detection\9_filterd_line"
-# out_dir = '/content/drive/MyDrive/Malaysia/Blueprint/Terrace_detection/10_cut_intersects_2lines'
-
 def main(line_shp_path, out_dir, minlen):
     start = time.time() 
     
@@ -71,7 +67,7 @@ def main(line_shp_path, out_dir, minlen):
     
     
     
-    """#角度で絞る"""
+    """#Filtering by angle"""
     def unit_vector(vector):
         """ Returns the unit vector of the vector.  """
         return vector / np.linalg.norm(vector) #np.linalg.norm() #default is None: Eucledean
@@ -81,7 +77,7 @@ def main(line_shp_path, out_dir, minlen):
         v2_u = unit_vector(v2)
         return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))) #np.clip: min, max
     
-    """短いライン（怪しいライン）とそれと交差するラインのペアを抽出"""
+    """Extract short lines (suspicious lines) and the intersecting lines"""
     inters_pair = []
     # Find two lines and one intersection
     for line1, line2 in itertools.combinations(lines,2):
@@ -104,25 +100,25 @@ def main(line_shp_path, out_dir, minlen):
         inters2.append(i[0])
     
     
-    """直近座標と最遠座標から抽出"""
+    """Extract from the nearest and farthest coordinates"""
     error_lines = []
     angle_thre = 45
     
-    #直近座標から抽出
+    #from the nearest
     for pair in inters_pair2:
-      #交点から最も近い座標をそれぞれのラインから2つ抽出し、直線をつくる
-      line_1_x, line_1_y = pair[1].coords.xy[0], pair[1].coords.xy[1] #x,yのarray
-      line_2_x, line_2_y = pair[2].coords.xy[0], pair[2].coords.xy[1] #
+      #Extract the two coordinates closest to the intersection from each line and create a straight line
+      line_1_x, line_1_y = pair[1].coords.xy[0], pair[1].coords.xy[1]
+      line_2_x, line_2_y = pair[2].coords.xy[0], pair[2].coords.xy[1]
       point_x, point_y = pair[0].coords.xy[0], pair[0].coords.xy[1]
       dist_1 = np.sqrt((np.array(line_1_x) - np.array(point_x))**2 + (np.array(line_1_y) - np.array(point_y))**2)
       dist_2 = np.sqrt((np.array(line_2_x) - np.array(point_x))**2 + (np.array(line_2_y) - np.array(point_y))**2)
       # get index
-      arg_indx_1 = dist_1.argsort() #遠い順に並べる場合[::-1]
-      idx_1 = np.where(arg_indx_1==1)[0] #交点から（交点箇所以外で）"1番目に遠い"Linestringの座標 *近すぎるとうまくいかない?
+      arg_indx_1 = dist_1.argsort() #if Sort in order of distance (from farthest to nearest) [::-1]
+      idx_1 = np.where(arg_indx_1==1)[0] #from intersecting point to the furtherst Linestring coord
       arg_indx_2 = dist_2.argsort()#[::-1]
       idx_2 = np.where(arg_indx_2==1)[0]
     
-      # make new vector from lines #交点を原点ゼロとしたベクトル
+      # make new vector from intersection
       vec_1_ = (np.array(line_1_x)[idx_1] - np.array(point_x),  np.array(line_1_y)[idx_1] - np.array(point_y))
       vec_1 = (vec_1_[0][0], vec_1_[1][0])
       vec_2_ = (np.array(line_2_x)[idx_2] - np.array(point_x),  np.array(line_2_y)[idx_2] - np.array(point_y))
@@ -131,27 +127,25 @@ def main(line_shp_path, out_dir, minlen):
     
       if angle > angle_thre and angle < (180-angle_thre):
         test_dic = {1:pair[1].length, 2:pair[2].length}
-        min_test = min(pair[2].length, pair[1].length) #なす角度が大きいペアのうち短い方をエラーラインとする
+        min_test = min(pair[2].length, pair[1].length) #error with short line if angle is large
         error_index = [k for k,v in test_dic.items() if v== min_test][0]
         error_line = pair[error_index]
         error_lines.append(error_line) #error lineを集める
     
     
-    # 最遠座標から抽出
+    # from farthest
     for pair in inters_pair2:
-      #交点から最も近い座標をそれぞれのラインから2つ抽出し、直線をつくる
-      line_1_x, line_1_y = pair[1].coords.xy[0], pair[1].coords.xy[1] #x,yのarray
-      line_2_x, line_2_y = pair[2].coords.xy[0], pair[2].coords.xy[1] #
+      line_1_x, line_1_y = pair[1].coords.xy[0], pair[1].coords.xy[1]
+      line_2_x, line_2_y = pair[2].coords.xy[0], pair[2].coords.xy[1]
       point_x, point_y = pair[0].coords.xy[0], pair[0].coords.xy[1]
       dist_1 = np.sqrt((np.array(line_1_x) - np.array(point_x))**2 + (np.array(line_1_y) - np.array(point_y))**2)
       dist_2 = np.sqrt((np.array(line_2_x) - np.array(point_x))**2 + (np.array(line_2_y) - np.array(point_y))**2)
-      # get index
-      arg_indx_1 = dist_1.argsort()[::-1] #遠い順に並べる場合
-      idx_1 = np.where(arg_indx_1==1)[0] #交点から（交点箇所以外で）"1番目に遠い"Linestringの座標 *近すぎるとうまくいかない?
+
+      arg_indx_1 = dist_1.argsort()[::-1] 
+      idx_1 = np.where(arg_indx_1==1)[0]
       arg_indx_2 = dist_2.argsort()[::-1]
       idx_2 = np.where(arg_indx_2==1)[0]
     
-      # make new vector from lines #交点を原点ゼロとしたベクトル
       vec_1_ = (np.array(line_1_x)[idx_1] - np.array(point_x),  np.array(line_1_y)[idx_1] - np.array(point_y))
       vec_1 = (vec_1_[0][0], vec_1_[1][0])
       vec_2_ = (np.array(line_2_x)[idx_2] - np.array(point_x),  np.array(line_2_y)[idx_2] - np.array(point_y))
@@ -160,13 +154,13 @@ def main(line_shp_path, out_dir, minlen):
     
       if angle > angle_thre and angle < (180-angle_thre):
         test_dic = {1:pair[1].length, 2:pair[2].length}
-        min_test = min(pair[2].length, pair[1].length) #なす角度が大きいペアのうち短い方をエラーラインとする
+        min_test = min(pair[2].length, pair[1].length)
         error_index = [k for k,v in test_dic.items() if v== min_test][0]
         error_line = pair[error_index]
         error_lines.append(error_line) # collect error lines
     
     
-    # linesをrefine
+    # lines refining
     lines_by_angle = list(set(lines)^set(error_lines))
     
     
@@ -192,7 +186,6 @@ def main(line_shp_path, out_dir, minlen):
     
     """#Export to shp"""
     gdf_angle = gpd.GeoDataFrame(geometry=lines_by_angle)
-    # gdf_angle.crs = 'epsg:32648'
     gdf_angle = gdf_angle.set_crs(gpdf.crs, allow_override=True)
     gdf_angle["length"] = gdf_angle.geometry.length
     

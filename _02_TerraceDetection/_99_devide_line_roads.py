@@ -13,7 +13,7 @@ def main(line_shp, out_dir, road_shp):
     gdf_line = gpd.read_file(line_shp)
     gdf_road = gpd.read_file(road_shp)
     
-    #roadポリゴンでlineをクリップ
+    #Clip lines by road
     for i,row in gdf_road.iterrows():
         clipped_lines = gpd.clip(gdf_line, row.geometry)
         if len(clipped_lines)>0:

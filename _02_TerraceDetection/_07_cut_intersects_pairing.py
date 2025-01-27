@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""01_cut_intersects_pairing.ipynb
+"""Cut the shorted lines by 1m if 3 lines intersect
 """
 
 import os
@@ -10,7 +10,6 @@ import numpy as np
 import itertools
 # import glob
 import collections
-
 
 
 def main(line_shp_path, out_dir):
@@ -40,12 +39,12 @@ def main(line_shp_path, out_dir):
       lines = [g.geometry for i,g in gpdf.iterrows()]
      
     
-    """#3本のラインと交点のセットを探す。MultiPointも拾うようにした"""
+    """#Collect 3 intersecting lines and intersection"""
     
     inters_pair = []
     inters_lines = []
-    # ライン3つと交点を抽出する
-    for line1, line2,line3 in itertools.combinations(lines,3): #3つ取り出す組み合わせ(順不同)
+
+    for line1, line2,line3 in itertools.combinations(lines,3):
       if line1.intersects(line2) and line1.intersects(line3) and line2.intersects(line3):
         inter1 = line1.intersection(line2)
         inter2 = line1.intersection(line3)
@@ -59,9 +58,7 @@ def main(line_shp_path, out_dir):
         else:
           pass
     
-    """#選ばれなかったラインをよけとく"""
-    
-    #選ばれたライン(ばらしてリストへ)(不要かも)
+    """#collect not-selected lines"""
     individual_inters_lines = []
     for lis in inters_lines:
       for l in lis:
@@ -69,14 +66,9 @@ def main(line_shp_path, out_dir):
     
     individual_inters_lines_set = set(individual_inters_lines)
     
-    #選ばれなかったライン
     line_non_inters = list(set(individual_inters_lines_set)^set(lines))
     
-    """#交点からbuff_distanceの距離まで最短ラインを切る（Arcで言うerase）  
-    ここでは少し切ればいい
-    """
-    
-    #短いラインを切る
+    """#cut line by 1m from intersection """
     
     buff_distance = 1
     cut_lines =[]
@@ -86,14 +78,13 @@ def main(line_shp_path, out_dir):
     for i,lins in enumerate(inters_lines):
       tmp_list =[li.length for li in lins]
       tmp_array = np.array(tmp_list)
-      index_sort = tmp_array.argsort() #小さい順に並んでる
-      shortest_id_list = list(index_sort[0:1]) #[0:1]短い1本、[0:2]短い2本
-      target_lines = [lins[i] for i in shortest_id_list] #切るライン
-     # buffer作成
+      index_sort = tmp_array.argsort()
+      shortest_id_list = list(index_sort[0:1])
+      target_lines = [lins[i] for i in shortest_id_list]
+     # buffer
       inter_point = inters_pair[i][0]
       buff_poly = inter_point.buffer(buff_distance)
     
-      # まずgdfに変換する
       cut_tar_lines =[]
       cut_line_ori =[]
       data_poly = {"geometry":[buff_poly]}
@@ -101,29 +92,25 @@ def main(line_shp_path, out_dir):
       for target in target_lines:
         data_line = {"geometry":[target]}
         gdf_tar_line = gpd.GeoDataFrame(data_line, geometry="geometry")
-        cut_tar_line_ori = target #これが他の組み合わせのときのlongにならない必要がある
-        cut_tar_line = gdf_tar_line.difference(gdf_buff).values[0] #ここで実行。切られたLine Stringになる
-        #if cut_tar_line.length >0: #一応チェック
+        cut_tar_line_ori = target
+        cut_tar_line = gdf_tar_line.difference(gdf_buff).values[0]
         cut_tar_lines.append(cut_tar_line)
         cut_line_ori.append(cut_tar_line_ori)
-        #ここまでで3本ラインセットのうち短いものとそのオリジナルのリストを作成（内輪リスト）
     
-      #長いものを全体リストに入れる
-      if len(shortest_id_list) == 2: #短いの2つcutの場合
+      if len(shortest_id_list) == 2:
         long_line = [li for i,li in enumerate(lins) if i == index_sort[2]] #index_sort[2]
-        long_lines.append(long_line) #長いものの全体リスト
+        long_lines.append(long_line)
     
-      if len(shortest_id_list) == 1: #短いの1つcutの場合
+      if len(shortest_id_list) == 1:
         long_line = [li for i,li in enumerate(lins) if i != shortest_id_list[0]]
-        long_lines.append(long_line) #長いものの全体リスト
+        long_lines.append(long_line)
     
 
-      cut_lines.append(cut_tar_lines) #切ったラインリストを全体リストへ
-      cut_lines_oris.append(cut_line_ori) #切られたラインのオリジナルリスト
+      cut_lines.append(cut_tar_lines)
+      cut_lines_oris.append(cut_line_ori)
     
-    """ばらす"""
+    """to individuals"""
     
-    #バラす
     cut_lines_individual = []
     for cut in cut_lines:
       for c in cut:
@@ -139,22 +126,16 @@ def main(line_shp_path, out_dir):
       for l in lon:
         long_lines_individual.append(l)
     
-    """#最短ラインの重複を解消する
+    """#Correct overlapping of shortest lines """
+    cut_collections = collections.Counter(cut_lines_ori_individual)
+    same_short = [k for k,c in cut_collections.items() if c>1]
     
-    まず重複している組み合わせを抽出する
-    """
-    
-    #同じshortを選んでいる組み合わせを見つける(oriを抽出)
-    cut_collections = collections.Counter(cut_lines_ori_individual) #valkueと個数の組み合わせ
-    same_short = [k for k,c in cut_collections.items() if c>1] #2回以上選ばれたLindStringのリスト(values)
-    
-    #そのLinestring(value)がどのindexなのか探す
     same_idx_list = []
     for same in same_short:
       idx_list =[]
       for i,ori in enumerate(inters_lines):
         try:
-          same_idx = [ori.index(same)] #これは3本の中でのindex
+          same_idx = [ori.index(same)]
           if len(same_idx) >0:
             idx_list.append(i)
         except ValueError:
@@ -163,9 +144,7 @@ def main(line_shp_path, out_dir):
       same_idx_list.append(idx_list_set)
     
     
-    """Overlayしていたのであとで差し替えるcut済み最短ラインを抽出"""
-    
-    #overlayしてる2本をcutlinesから抽出(あとで消すやつ)
+    """Collect Overlapping line to replace with cut ones"""
     overlays_list = []
     for idxs in same_idx_list:
       overlays=[]
@@ -173,26 +152,19 @@ def main(line_shp_path, out_dir):
         overlays.append(cut_lines[i][0])
       overlays_list.append(overlays)
     
-    # overlays_list #cut済み
-    
-    # ばらす
     overlays_list_individual = [item for sublist in overlays_list for item in sublist]
-    # overlays_list_individual
+
     
-    """Overlay部分だけを抽出して残す"""
-    
-    #overlay部分だけを抽出して残す
     overlay_part =[]
     for over in overlays_list:
-      part = over[0].intersection(over[1]) #intersectionだと切り出し、intersectだとTrueっていう出力だった
+      part = over[0].intersection(over[1])
       part2 = part.intersection(over[0])
       overlay_part.append(part2)
     
-    #Empty除外
-    overlay_part = [o for o in overlay_part if not o.is_empty]
-    # overlay_part #使うやつ
+    #Empty
+    overlay_part = [o for o in overlay_part if not o.is_empty] #to be used
     
-    #Multistringになってるから修正, つなぐ
+    #correct Multistring
     overlay_results=[]
     for mul in overlay_part:
         checktype = mul.geom_type
@@ -201,7 +173,7 @@ def main(line_shp_path, out_dir):
           test_part_gdf = gpd.GeoDataFrame(test_data, geometry="geometry")
           test_gdf = multi2single(test_part_gdf)
     
-          # Linestringをひとつに繋げる
+          # to one Linestring
           coords_list = []
           for i,l in test_gdf.iterrows():
             coordss = list(l.geometry.coords)
@@ -217,28 +189,21 @@ def main(line_shp_path, out_dir):
         else:
             overlay_results.append(mul)
     
-    # overlay_results #使うやつのリスト
+    # overlay_results #to be used
     
-    """あとで消すやつで抽出したラインとoverlay_resultを置換する"""
-    
-    #cut_linesからまず消す
+    """Replace with overlapping line"""
     cut_line_remove = list(set(cut_lines_individual) - set(overlays_list_individual))
-    
-    #overlayをつなげたラインを足す
+    #add overlapping line
     cut_line_results = cut_line_remove + overlay_results
     
     
-    """#longからcut_oriと同じものがあれば消す"""
-    
-    #longからcut_oriと同じものがあれば消す
+    """#delete long if cut in another pairing"""
     long_set = list(set(long_lines_individual) - set(cut_lines_ori_individual))
         
     long_clean = long_set
     
     
-    """#Linesを統合する"""
-    
-    #Linesを統合する
+    """#concat"""
     lines_after_cut = line_non_inters + cut_line_results + long_clean
     
     #Plot for check
@@ -309,7 +274,6 @@ def main(line_shp_path, out_dir):
     """#Export to shp"""
     gdf_export = gpd.GeoDataFrame(geometry=lines_after_cut)
     gdf_export = gdf_export.set_crs(gpdf.crs, allow_override=True)
-    # gdf_export.crs = 'epsg:32648'
     gdf_export["length"] = gdf_export.geometry.length
     
     ### Eliminate Points
