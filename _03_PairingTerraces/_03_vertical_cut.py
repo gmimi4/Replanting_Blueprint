@@ -23,7 +23,6 @@ def main(line_shp_path, out_dir, dem_path):
     
     gpdf = gpd.read_file(line_shp_path)
     
-    # MultiLineStringがあれば処理をする
     def multi2single(gpdf_test):
     
         exploded_all = gpdf_test.explode()
@@ -41,16 +40,12 @@ def main(line_shp_path, out_dir, dem_path):
     else:
       lines = [line.geometry for i,line in gpdf.iterrows()]
     
-    """lines作成"""
     
     lines = [shape(line.geometry) for line in fiona.open(line_shp_path,'r')]
     
-    """#繋がっているラインをひとつにする
-    
-    いっかいぜんぶmultipineにしてその後シングルに分ける
+    """#Connect all lines #muletiline, then to single lines
     """
     
-    #tmp_dirに入れる
     src = fiona.open(line_shp_path)
     crs = src.crs
     driver = src.driver
@@ -78,7 +73,6 @@ def main(line_shp_path, out_dir, dem_path):
         })
     
     
-    #分離
     data_merged = {"geometry":[merged_geometries]}
     gdf_merged = gpd.GeoDataFrame(data_merged)
     gdf_merged = gdf_merged.set_crs(gpdf.crs, allow_override=True) 
@@ -89,12 +83,10 @@ def main(line_shp_path, out_dir, dem_path):
     
     src.close()
     
-    """短い独立ラインを削除する"""
+    """delete short isolated line"""
     thre = 3
     gdf_sep_long = gdf_sep[gdf_sep.length>thre]
     
-    
-    """linestringにする"""
     lines_rev = [g.geometry for i,g in gdf_sep_long.iterrows()]
     
     # #Plot for check
@@ -113,25 +105,23 @@ def main(line_shp_path, out_dir, dem_path):
     # for i in range(len(name)):
     #   ax1.plot(linestring_x_[i], linestring_y_[i], color = 'aquamarine', label='Linestring')
     
-    """# DEMでGrouping"""
+    """# Grouping by DEM"""
     
     dem_src = rasterio.open(dem_path)
     raster_data = dem_src.read(1)
     transform = dem_src.transform
     
-    #linesでゾーナル
     stat_dic = {}
     for line in lines_rev:
       gdf_convert = gpd.GeoDataFrame(geometry=[line])
       try:
         stats_temp = zonal_stats(gdf_convert.geometry, raster_data, affine=transform, stats=["max","min","mean", "std"]) #辞書になる、リストに入る
       except: #error: height and width must be >0
-        #中間地点にpointつくってそのDEM値を拾う
+        #create center point to collect dem value
         center_point = line.interpolate(0.5, normalized=True)
         stats_temp = zonal_stats(center_point, raster_data, affine=transform, stats=["max","min","mean", "std"])
       stat_dic[line] = stats_temp[0]
         
-    # gdfに整形する
     max_list,min_list,mean_list,std_list,geom_list = [],[],[],[],[]
     
     for k,v in stat_dic.items():
@@ -146,13 +136,13 @@ def main(line_shp_path, out_dir, dem_path):
     gdf_line_stats = gdf_line_stats.set_crs(gpdf.crs, allow_override=True)
     gdf_line_stats["length"] = gdf_line_stats.geometry.length
     
-    """mean順に上から並べる
+    """sort by mean from high ele
     #gdf_sort
     """    
     gdf_sort = gdf_line_stats.sort_values(by='mean', ascending=False).reset_index()
 
     
-    """一番高いDEMから*m刻みでグループ化してみる"""
+    """Groupding by *m step"""
     
     height_diff = 1
     
@@ -161,7 +151,7 @@ def main(line_shp_path, out_dir, dem_path):
     gdf_sort["Group"] = 0 #dammy
     
     gp_num = math.ceil((max_dem_mean - min_dem_mean)/height_diff)
-    for g in range(gp_num): #切り上げ　下端のレンジは広くなる
+    for g in range(gp_num):
       range_upper = max_dem_mean - height_diff*(g)
       range_lower = max_dem_mean - height_diff*(g+1)
       for i,line in gdf_sort.iterrows():
@@ -169,25 +159,20 @@ def main(line_shp_path, out_dir, dem_path):
         if mean_val <= range_upper and mean_val >= range_lower:
           gdf_sort.iat[i,-1] = g+1
     
-    #高いほどGroup小さい    
-    # line列、pair列、pair2列作成
+    #small Group number for high ele    
     gdf_sort["LineID"] = gdf_sort["index"] #column名
     gdf_sort["Processed"] = 0 #dammy
     gdf_sort["Pair"] = 0 #dammy
     gdf_sort["Pair2"] = 0 #dammy
     
-    """垂線def"""
-    
-    #起点Pからラインまで垂線を下ろしたときの交点
-    
+    """vertical def"""
     def pointref_to_pointT2(Pref,T2_line_geoseries):
-      distance = T2_line_geoseries.distance(Pref) #起点Pから直近のラインまでの距離
+      distance = T2_line_geoseries.distance(Pref) #from P to nearest line
       PointT2 = T2_line_geoseries.interpolate(T2_line_geoseries.project(Pref)) #P0
       return PointT2, distance #GeoSeries point, [m]
     
-    """#Bufferにひっかかったもの抽出ver(採用)"""
     
-    #バッファー距離
+    """#Collect neghboring line by Buffer"""
     search_m = 9
     
     gdf_sort_copy = gdf_sort.copy(deep=True)
@@ -195,45 +180,42 @@ def main(line_shp_path, out_dir, dem_path):
     
     for lii in range(initial_num):
       print(lii)
-      #T1選定
+      #T1
       line_1st = gdf_sort[lii:lii+1].geometry.values[0]
     
       T1_buff = line_1st.buffer(search_m)
     
-      #バッファーと交差するライン拾う。
       inters_T2 = []
       for i, li in gdf_sort.iterrows():
         if li.geometry.intersection(T1_buff):
           inters_T2.append(li.geometry)
     
-      ## ------------- 上下のラインの端点でお互いを切る(buffer ver) --------------------
-      #各ラインの端点から各ラインへの垂線の点を収集
+      ## ------------- cut each other by endpoints --------------------
+      #collect intersecting points from endpoints to line
       vertical_points_list_ = []
-      for inter in inters_T2: #interにはT1自身も含まれる
-        endpts = {} #1ラインにつき端点2つ
-        #Group取得
+      for inter in inters_T2: #including T1
+        endpts = {}
         gdf_check2 = gdf_sort[gdf_sort['geometry'] == inter]
         grp2 = gdf_check2.Group.values[0]
         endpts[(Point(list(inter.coords[0])), Point(list(inter.coords[-1])))] = grp2 #各endpointのセットタプルがkey（リストだとえらー）, Groupが値の辞書
     
-        #ラインに垂線をおろす
+        #vertical line
         inters_target = inters_T2
     
         vertical_p_list_ = []
         for ee, g in endpts.items():
           for tar in inters_target:
             gdf_check4 = gdf_sort[gdf_sort['geometry'] == tar]
-            processed = gdf_check4.Processed.values[0] #処理済みの場合はしない
+            processed = gdf_check4.Processed.values[0]
             if processed == 0:
               gdf_check3 = gdf_sort[gdf_sort['geometry'] == tar]
               grp3 = gdf_check3.Group.values[0]
-              if grp3 != g: #同じGroup同士では垂線したくない
+              if grp3 != g: #avoid same Group from making vertical cut
                 for e in ee:
-                  ver_p, ver_dis = pointref_to_pointT2(e, tar) #垂線の点P0
+                  ver_p, ver_dis = pointref_to_pointT2(e, tar) #P0
                   vertical_p_list_.append(ver_p)
     
         if len(vertical_p_list_) >0:
-          # vertical_p_list = vertical_p_list_[0].tolist() #リストへ変換
           vertical_p_list = vertical_p_list_
           vertical_points_list_.append(vertical_p_list)
     
@@ -248,18 +230,17 @@ def main(line_shp_path, out_dir, dem_path):
         j_list_ = []
         for p in vertical_points_list:
           for i in range(len(coords) - 1):
-            distance_line_point = LineString(coords[i:i + 2]).distance(p) #intersectsだととれない場合がある
-            if distance_line_point < 0.0000001: #適当に小さい値
+            distance_line_point = LineString(coords[i:i + 2]).distance(p) #intersects cannot work?
+            if distance_line_point < 0.0000001: #very small distance
                   j = i
-                  j_list_.append(j) #どちらかはポイント？
+                  j_list_.append(j)
     
         j_list = list(set(j_list_))
         j_list.sort()
     
-        if len(j_list) >0: #少なくとも交点がひとつある
+        if len(j_list) >0: #at least one intersection
           j_list_guu = j_list
     
-          #スライスリスト作成
           for_slice = []
           for j in range(len(j_list_guu)):
             if j ==0:
@@ -273,35 +254,33 @@ def main(line_shp_path, out_dir, dem_path):
               for_sli = [sli_val_, sli_val]
               for_slice.append(for_sli)
     
-          #[0,1]スライスは削除
+          #remove [0,1]
           if [0,1] in for_slice:
             for_slice.remove([0,1])
     
           for_slice = for_slice + [[j_list_guu[-1]]]
     
-          ## ---- for_sliceの中で2個差のは微小になりそうだから削除する -------------------
+          ## ---- for_slice, 2 datapoint will be very short and delete such ones -------------------
           for_slice_mid = [for_slice[s] for s in range(len(for_slice)) if s != len(for_slice)-1] #最後の1要素だけのを除いたリスト
           for_slice_rev = [sli for sli in for_slice_mid if (sli[1]-sli[0]) >2 ] + [for_slice[-1]]
-          #ないindexを探す
+          #find false index
           del_sli = []
           for d in for_slice:
             if (len(d) >1) and (d not in for_slice_rev):
               del_sli.append(d)
           del_sli_ind = [for_slice.index(d) for d in del_sli]
-          # del_sli_ind.pop(-1) #最後の要素は残してよい
     
-          #あるインデックスも探す
+          #find true index
           val_sli = []
           for d in for_slice:
             if d in for_slice_rev:
               val_sli.append(d)
           valid_sli_ind = [for_slice.index(d) for d in val_sli if d in for_slice]
     
-          #作り直す
+          #remake
           new_sli = []
           for di in del_sli_ind:
             if (di != 0) and len(for_slice[di+1])>1:
-              #いっこ前のスライスの幅をつぎの有効なスライスを使って置換する
               new_0 = for_slice[di-1][1]-1
               new_1 = for_slice[di+1][1]
               new_sli.append([new_0,new_1])
@@ -312,14 +291,14 @@ def main(line_shp_path, out_dir, dem_path):
           for_slice_rev_fin_ = [for_slice[s] for s in for_slice_use] + new_sli
           for_slice_rev_fin_sort = sorted(for_slice_rev_fin_, key=lambda x:(x[0]))
     
-          #有効なスライスであること
+          #confirm for valid slice
           if len(for_slice_rev_fin_sort)>0:
             if for_slice_rev_fin_sort[-1] != for_slice[-1]:
               for_slice_rev_fin_sort = for_slice_rev_fin_sort +  [for_slice[-1]] #末尾の1要素が抜けてしまっていたら復元する
     
             ## ------------------------------------------------------------------------------
     
-            #切ったcoords取得
+            #collect coords after cut
             slice_lines = []
             for i, sli in enumerate(for_slice_rev_fin_sort): #for_slice
               if i != len(for_slice_rev_fin_sort) -1: #for_slice
@@ -329,7 +308,6 @@ def main(line_shp_path, out_dir, dem_path):
                 slis = coords[sli[-1] :]
                 slice_lines.append(slis)
     
-            #LindeStringに変換
             cut_line_strings = []
             for cut in slice_lines:
               if len(cut) !=1:
@@ -337,17 +315,17 @@ def main(line_shp_path, out_dir, dem_path):
                 cut_line_strings.append(cut_line)
     
     
-            #Groupは同じのを入力
+            #input same Group
             gdf_c = gdf_sort[gdf_sort['geometry'] == inters_T2[ti]]
-            if len(gdf_c) >0: #謎、あるはずだけど
+            if len(gdf_c) >0: #?
               gp_cut = gdf_c.Group.values[0]
               gp_ind = gdf_c.LineID.values[0]
-              #gdfに変換
+
               data_cut = {"geometry":cut_line_strings, "Group":gp_cut, "Processed":1, "LineID":gp_ind} #処理済みを入れる
               gdf_cut = gpd.GeoDataFrame(data_cut)
               gdf_cut = gdf_cut.set_crs(gpdf.crs, allow_override=True)
     
-              # inters_T2[ti]をgdfから抜いて、cut_line_stringsに置き換える
+              # remove inters_T2[ti] from gdf and replace with cut_line_strings
               gdf_sort.drop(gdf_sort.loc[gdf_sort["geometry"] == inters_T2[ti]].index, inplace=True) #古いライン削除
               merged = pd.concat([gdf_sort, gdf_cut], ignore_index=True) #新しいラインs挿入
               gdf_sort = gpd.GeoDataFrame(merged, geometry='geometry')
@@ -356,13 +334,11 @@ def main(line_shp_path, out_dir, dem_path):
           else:
             continue
     
-        else: #len(j_list) が0: #交点がない
+        else: #len(j_list) 0: #no intersection
           pass
     
-    #長さ入力
     gdf_sort["length"] = gdf_sort.geometry.length
     
-    #同じラインが生成されているぽい（Arcで確認したところ）.重複削除
     gdf_sort_unique = gdf_sort.drop_duplicates()
 
     

@@ -53,7 +53,7 @@ def main(line_shp_path, dem_path, out_dir):
       return rasterized #ndarray
     
     
-    #tmp_dirに入れる
+
     tmp_dir = out_dir + os.sep + "tmp"
     os.makedirs(tmp_dir,exist_ok=True)
     
@@ -70,13 +70,12 @@ def main(line_shp_path, dem_path, out_dir):
         }}
     
     
-    #分離
     data_merged = {"geometry":[merged_geometries]}
     gdf_merged = gpd.GeoDataFrame(data_merged)
     gdf_merged = gdf_merged.set_crs(gpdf.crs, allow_override=True)
     
     
-    """#ラスター化(def使わず)"""
+    """#to raster"""
     
     res = 1
     
@@ -108,9 +107,8 @@ def main(line_shp_path, dem_path, out_dir):
     
     # plt.imshow(rasterized, cmap='viridis')
     
-    """#3by3ウィンドウを取り出す."""
+    """#3by3"""
     
-    #長さがresolution*3ウィンドウサイズ以下の場合は何もしない
     windowsize = 3
     res = 1
     sub_shape = (windowsize, windowsize)
@@ -125,7 +123,6 @@ def main(line_shp_path, dem_path, out_dir):
     east_list =[]
     for view in arr_view:
     # view = np.array([[1, 0,0], [0, 1, 1],[1, 0, 0]]) #for debug
-    #真ん中を取得
       center = view[1,1]
       if center ==0:
         continue

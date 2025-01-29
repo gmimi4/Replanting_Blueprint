@@ -26,7 +26,6 @@ def main(line_shp_path, out_dir):
     
     """def Multiline to single line"""
     
-    # MultiLineStringがあれば処理をする
     def multi2single(gpdf_test):
     
         exploded_all = gpdf_test.explode()
@@ -36,7 +35,6 @@ def main(line_shp_path, out_dir):
     
         return gdf_dropped
     
-    """def 二重リストをばらす"""
     
     def flatten_list(multi_list):
       indiv_list =[]
@@ -50,7 +48,6 @@ def main(line_shp_path, out_dir):
       indivs = list(set(indiv_list))
       return indivs
     
-    """#lines作成"""
     
     multi_rows = gpdf[gpdf.geometry.type == 'MultiLineString']
     
@@ -61,9 +58,6 @@ def main(line_shp_path, out_dir):
       lines = [line.geometry for i,line in gpdf.iterrows()]
     
     
-    """#重複削除する"""
-    
-    #0mより大きいオーバーラップがあるラインの組み合わせを抽出,つなげる
     inters_pair =[]
     for line1, line2 in itertools.combinations(lines,2):
       if line1.intersects(line2):
@@ -80,17 +74,13 @@ def main(line_shp_path, out_dir):
       line_merge = shapely.ops.linemerge([shapely.geometry.shape(row) for i, row in [inter_lines]] )
       concatline_list.append(line_merge)
     
-    #Lines更新
-    #ばらす
     inters_pair_indiv_=[]
     for ll in inters_pair:
       for l in ll:
         inters_pair_indiv_.append(l)
     inters_pair_indiv = list(set(inters_pair_indiv_))
     
-    #除外
     line_remoev = list(set(lines) ^ set(inters_pair_indiv))
-    #足して更新
     lines_rev = line_remoev + concatline_list
     
     
@@ -108,28 +98,23 @@ def main(line_shp_path, out_dir):
         
         
     
-    """#def 隣接する同じペアをまとめる"""
-    
     def merge_by_pair(pairid, gdf, t1t2num):
       gdf_pair = gdf.query(f"Pair=={pairid}")
       gdf_pair_list = gdf_pair.geometry.tolist()
     
-      #交差すれば拾う
       inters = []
       for l1,l2 in itertools.combinations(gdf_pair_list, 2):
         if l1.intersects(l2):
           inters.append([l1,l2])
       inters_indiv = list(set(flatten_list(inters)))
     
-      #マージ
       line_merge = shapely.ops.linemerge([shapely.geometry.shape(row) for row in inters_indiv] )
     
-      #Groupは多数決を採用
+      #Put major Group
       gdf_group_list = gdf_pair.Group2.tolist()
       element_counts = Counter(gdf_group_list)
       most_Group = max(element_counts, key=element_counts.get)
     
-      #gdf作成
       data1 = {"geometry":[line_merge],"Pair":pairid,"T1T2":t1t2num,"Group2":most_Group,"Processed":0}
       gdf_merge = gpd.GeoDataFrame(data1)
     
@@ -137,7 +122,7 @@ def main(line_shp_path, out_dir):
       return gdf_merge, inters_indiv #gdf_concat
     
     
-    """処理開始"""
+    """Run"""
     
     #Updating pairs. # If there is no T2, pass to T1 processing.
     if len(gdf_T2s) >0:
@@ -159,7 +144,6 @@ def main(line_shp_path, out_dir):
         #remove multiline
         single_gdf = multi2single(gdf_merge_all)
         
-        #gdf更新
         gdf_T_non = gdf_T2s[~gdf_T2s['geometry'].isin(to_removes_all)]
         gdf_concat = pd.concat([gdf_T_non, single_gdf])
         gdf_concat["length"] = gdf_concat.geometry.length
@@ -189,7 +173,7 @@ def main(line_shp_path, out_dir):
     #remove multiline
     single_gdf = multi2single(gdf_merge_all)
     
-    #gdf更新
+    #update gdf
     gdf_T_non = gdf_T1s[~gdf_T1s['geometry'].isin(to_removes_all)]
     gdf_concat = pd.concat([gdf_T_non, single_gdf])
     gdf_concat["length"] = gdf_concat.geometry.length

@@ -23,8 +23,7 @@ dem_path = "set DEM path"
 os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _03_vertical_cut
 
-pagenum = #1
-line_shps = glob.glob(rf"your path" + os.sep + "04_Terrace_detection\06_cut_by_intersect\2_2cut\extent{pagenum}" + os.sep + "*.shp")
+line_shps = glob.glob(rf"your path to 04_Terrace_detection\06_cut_by_intersect\2_2cut" + os.sep + "*.shp")
 out_dir = pairing_terrace_dir + os.sep + "01_vertical_cut" + os.sep + f"extent{pagenum}"
 os.makedirs(out_dir, exist_ok=True)
 
@@ -40,7 +39,6 @@ for shp in tqdm(line_shps):
 os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _03_vertical_cut_post
 
-pagenum = #1
 # before vertical cut
 line_shps = glob.glob(rf"your path" + os.sep + "04_Terrace_detection\06_cut_by_intersect\2_2cut\extent{pagenum}" + os.sep + "*.shp")
 # after_cut_dir
