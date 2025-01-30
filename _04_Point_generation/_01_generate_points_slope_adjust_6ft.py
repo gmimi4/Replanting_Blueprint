@@ -8,10 +8,6 @@ import numpy as np
 import math
 import time
 
-# line_shp_path = r"E:\Malaysia\01_Blueprint\Pegah_san\05_Pairing_terraces_rev_skelton\03_direction\_lines_16_cut_cut2ls_connect_sq_cut_cut2_vertical_post_T1T2_post_dire.shp"
-# road_shp = r"D:\Malaysia\01_Brueprint\11_Roads\roads_buff_25m.shp"
-# out_dir = r'D:\Malaysia\01_Brueprint\13_Generate_points\_test'
-
 
 def main(line_shp_path, road_shp, out_dir):
     start = time.time()
@@ -29,29 +25,29 @@ def main(line_shp_path, road_shp, out_dir):
     
     gdf_road = gpd.read_file(road_shp)
     
-    #bufferつくる
-    road_distance = 6*0.3048 #m換算
+    #buffer of road edge
+    road_distance = 6*0.3048 #m
     road_buff = gdf_road.buffer(road_distance)
     gdf_road_buff = gpd.GeoDataFrame(geometry=road_buff)
     
-    #Dissolveする
+    #Dissolve
     gdf_road_buff["tmp"] = 1
     gdf_road_dissolve = gdf_road_buff.dissolve(by='tmp')
     
-    ### Polygon #これを使う
+    ### Polygon #use this
     buff_boundary = gdf_road_dissolve.geometry.values[0]
     
     
-    """# def 方向に応じたライン始点をとる"""        
+    """# def start point based on direction"""        
     def get_startpoint(linestring, direction):
-      ## オリジナルの端点（xの小さい方）をつくる
+      ## endpoint (smaller x)
       x_0,y_0 = linestring.coords.xy
       p00 = Point(x_0[0], y_0[0])
       p_1 = Point(x_0[-1], y_0[-1])
       if direction =="east":
         x_min_idx = [p00.x, p_1.x].index(min([p00.x, p_1.x]))
         p0 = [p00, p_1][x_min_idx]
-      ## オリジナルの端点（yの大きい方）をつくる
+      ## endpoint (larger y)
       if direction =="south":
         y_max_idx = [p00.y, p_1.y].index(max([p00.y, p_1.y]))
         p0 = [p00, p_1][y_max_idx]
@@ -60,14 +56,12 @@ def main(line_shp_path, road_shp, out_dir):
     
     ### end side too
     def get_startpoint_end(linestring, direction):
-      ## オリジナルの端点（xの小さい方）をつくる
       x_0,y_0 = linestring.coords.xy
       p00 = Point(x_0[0], y_0[0])
       p_1 = Point(x_0[-1], y_0[-1])
       if direction =="east":
         x_min_idx = [p00.x, p_1.x].index(max([p00.x, p_1.x]))
         p0 = [p00, p_1][x_min_idx]
-      ## オリジナルの端点（yの大きい方）をつくる
       if direction =="south":
         y_max_idx = [p00.y, p_1.y].index(min([p00.y, p_1.y]))
         p0 = [p00, p_1][y_max_idx]
@@ -75,38 +69,36 @@ def main(line_shp_path, road_shp, out_dir):
       return p0
     
     """#def　point_from_6ft
-    
-    Road bufferポリゴンとの交点を得る。始点（xが小さい方/yが大きい方）がBufferに被らなければオリジナル端点をゼロ点とする
+    get intersection with Road buffer.
+    If starting point (smaller x or larger y) is not within buff, p0 is original endpoint
     """
-    
     class roadedge_6ft:
         def __init__(self, linestring, direction, gdf_buff = gdf_road_dissolve):
             self.linestring = linestring
             self.direction = direction
             gdf_buff = gdf_road_dissolve
             
-        #bufferとの交点にライン作成 ただし方向の始点（xが小さい方/yが大きい方）がBufferに被らなければ西側の端点をReference点とする #Bufferlines
+        # make line at intersection with buffer
         def point_from_6ft(self):
         # def point_from_6ft(linestring, direction, gdf_buff=gdf_road_dissolve):
           buff_boundary = gdf_road_dissolve.geometry.values[0]
         
-          ## オリジナルの端点（xの小さい方）をつくる
+          ## original endpoints (smaller x)
           x_0,y_0 = self.linestring.coords.xy
           p00 = Point(x_0[0], y_0[0])
           p_1 = Point(x_0[-1], y_0[-1])
           if self.direction =="east":
             x_min_idx = [p00.x, p_1.x].index(min([p00.x, p_1.x]))
             p0 = [p00, p_1][x_min_idx]
-          ## オリジナルの端点（yの大きい方）をつくる
+          ## original endpoints (larger y)
           if self.direction =="south":
             y_max_idx = [p00.y, p_1.y].index(max([p00.y, p_1.y]))
             p0 = [p00, p_1][y_max_idx]
         
         
           if buff_boundary.contains(p0):
-            ## Bufferとの交点作成
-            inters = gdf_road_dissolve.intersection(self.linestring) #testのときと挙動が違うけど #LineStringが取れる #Multiのことがある
-            try: #ふつうにLineStringがとれるとき
+            inters = gdf_road_dissolve.intersection(self.linestring)
+            try:
               endp1, endp2 = Point([inters.values[0].xy[0][0],inters.values[0].xy[1][0]]),  Point([inters.values[0].xy[0][-1],inters.values[0].xy[1][-1]]) #LineString #端点をつくる
               ori_tar = self.linestring
         
@@ -114,7 +106,7 @@ def main(line_shp_path, road_shp, out_dir):
               if (inters.geom_type.values[0] == "MultiLineString"): #.all
                 individual_lines = list(inters.values[0].geoms) #LineString list
                            
-                #まずdirectionの始点になる一本を決めてその端点をつくる
+                # get line for starting point at the end
                 oristarts_dic = {}
                 oristarts_list = []
                 if self.direction == "east":
@@ -122,7 +114,7 @@ def main(line_shp_path, road_shp, out_dir):
                     ori_p0 = get_startpoint(i, "east")
                     oristarts_dic[ori_p0] = i
                     oristarts_list.append(ori_p0)
-                  #ori端点同士の比較
+                  # compare ori endpoints
                   x_list = [x.xy[0] for x in oristarts_list] #xy[0][0]
                   x_min_idx = x_list.index(min(x_list))
                   p_key = [p for p in oristarts_list if p.xy[0] == x_list[x_min_idx]][0]
@@ -132,34 +124,34 @@ def main(line_shp_path, road_shp, out_dir):
                     ori_p0 = get_startpoint(i, "south")
                     oristarts_dic[ori_p0] = i
                     oristarts_list.append(ori_p0)
-                  #ori端点同士の比較
+
                   y_list = [x.xy[1] for x in oristarts_list] #x.xy[0][1]
                   y_max_idx = y_list.index(max(y_list))
                   p_key = [p for p in oristarts_list if p.xy[1] == y_list[y_max_idx]][0]
                   ori_tar = oristarts_dic[p_key]
         
-              elif (inters.geom_type.values[0] == "LineString"): #なぜかLineStringがシリーズになるとき
+              elif (inters.geom_type.values[0] == "LineString"):
                 endp1, endp2 = Point([inters.values[0].xy[0][0],inters.values[0].xy[1][0]]),  Point([inters.values[0].xy[0][-1],inters.values[0].xy[1][-1]]) #LineString #端点をつくる
                 ori_tar = self.linestring
         
-              else: #とりあえず
+              else: 
                 endp_use = p0
                 ori_tar = self.linestring
         
               endp1, endp2 = Point([ori_tar.xy[0][0],ori_tar.xy[1][0]]),  Point([ori_tar.xy[0][-1],ori_tar.xy[1][-1]]) #LineString #端点をつくる
     
              
-            ###修正　シンプルにp0じゃない方にする
+            ###　not p0
             endp_use = [p for p in [endp1, endp2] if p != p0]
-            if len(endp_use) >0: #念のため
+            if len(endp_use) >0:
                 endp_use = endp_use[0]
             else:
-                endp_use = p0 #念のため
+                endp_use = p0 
         
           else:
             endp_use = p0
         
-          return endp_use #交点
+          return endp_use #intersection
         
         
         ### End side too
@@ -167,29 +159,25 @@ def main(line_shp_path, road_shp, out_dir):
 
           buff_boundary = gdf_road_dissolve.geometry.values[0]
         
-          ## オリジナルの端点（xの小さい方）をつくる
           x_0,y_0 = self.linestring.coords.xy
           p00 = Point(x_0[0], y_0[0])
           p_1 = Point(x_0[-1], y_0[-1])
           if self.direction =="east":
             x_min_idx = [p00.x, p_1.x].index(max([p00.x, p_1.x]))
             p0 = [p00, p_1][x_min_idx]
-          ## オリジナルの端点（yの大きい方）をつくる
           if self.direction =="south":
             y_max_idx = [p00.y, p_1.y].index(min([p00.y, p_1.y]))
             p0 = [p00, p_1][y_max_idx]
         
           if buff_boundary.contains(p0):
-            ## Bufferとの交点作成
-            inters = gdf_road_dissolve.intersection(self.linestring) #testのときと挙動が違うけど #LineStringが取れる #Multiのことがある
-            try: #ふつうにLineStringがとれるとき
+            inters = gdf_road_dissolve.intersection(self.linestring)
+            try: 
               endp1, endp2 = Point([inters.values[0].xy[0][0],inters.values[0].xy[1][0]]),  Point([inters.values[0].xy[0][-1],inters.values[0].xy[1][-1]]) #LineString #端点をつくる
               ori_tar = self.linestring
             except:
               if (inters.geom_type.values[0] == "MultiLineString"): #.all
                 individual_lines = list(inters.values[0].geoms) #LineString list
                            
-                #まずdirectionの始点になる一本を決めてその端点をつくる
                 oristarts_dic = {}
                 oristarts_list = []
                 if self.direction == "east":
@@ -197,7 +185,7 @@ def main(line_shp_path, road_shp, out_dir):
                     ori_p0 = get_startpoint_end(i, "east")
                     oristarts_dic[ori_p0] = i
                     oristarts_list.append(ori_p0)
-                  #ori端点同士の比較
+              
                   x_list = [x.xy[0] for x in oristarts_list] #xy[0][0]
                   x_min_idx = x_list.index(max(x_list))
                   p_key = [p for p in oristarts_list if p.xy[0] == x_list[x_min_idx]][0]
@@ -207,23 +195,23 @@ def main(line_shp_path, road_shp, out_dir):
                     ori_p0 = get_startpoint_end(i, "south")
                     oristarts_dic[ori_p0] = i
                     oristarts_list.append(ori_p0)
-                  #ori端点同士の比較
+                  
                   y_list = [x.xy[1] for x in oristarts_list] #x.xy[0][1]
                   y_max_idx = y_list.index(min(y_list))
                   p_key = [p for p in oristarts_list if p.xy[1] == y_list[y_max_idx]][0]
                   ori_tar = oristarts_dic[p_key]
         
-              elif (inters.geom_type.values[0] == "LineString"): #なぜかLineStringがシリーズになるとき
+              elif (inters.geom_type.values[0] == "LineString"):
                 endp1, endp2 = Point([inters.values[0].xy[0][0],inters.values[0].xy[1][0]]),  Point([inters.values[0].xy[0][-1],inters.values[0].xy[1][-1]]) #LineString #端点をつくる
                 ori_tar = self.linestring
         
-              else: #とりあえず
+              else: 
                 endp_use = p0
                 ori_tar = self.linestring
         
               endp1, endp2 = Point([ori_tar.xy[0][0],ori_tar.xy[1][0]]),  Point([ori_tar.xy[0][-1],ori_tar.xy[1][-1]]) #LineString #端点をつくる
              
-            ###修正　シンプルにp0じゃない方にする
+            
             endp_use = [p for p in [endp1, endp2] if p != p0]
             if len(endp_use) >0: #念のため
                 endp_use = endp_use[0]
@@ -233,10 +221,10 @@ def main(line_shp_path, road_shp, out_dir):
           else:
             endp_use = p0
         
-          return endp_use #交点   
+          return endp_use  
     
     
-    """# def 方向に応じてラインのいちばん小さいx座標/大きいy座標を取得する"""
+    """# def get minimum x/largest y based on direction"""
     
     def min_Linex(linestring, direction): #note： largely winding lines may miss appropriate direction...
       if direction =="east":
@@ -320,7 +308,7 @@ def main(line_shp_path, road_shp, out_dir):
             intersection_points_list.append((intersection.x, intersection.y))
             PointT1_next = Point(intersection_points_list)
         
-          #MultiPointの場合 始点から遠い方を採用する
+          # point farther from start
           elif intersection.geom_type == 'MultiPoint':
             intersection_points_list.extend([(np.array(point.coords)[0][0], np.array(point.coords)[0][1]) for point in intersection.geoms]) #point list取得
             
@@ -339,7 +327,7 @@ def main(line_shp_path, road_shp, out_dir):
           return PointT1_next
         
         ### No adjustment ver
-        def buffer_for_pointT1_any(self): #P0から直線距離24ft間隔でT1上にポイント作成
+        def buffer_for_pointT1_any(self):
           buffer_distance = 24*0.3048 # [m]
         
           buffer_poly = self.PointT1_start.buffer(buffer_distance)
@@ -353,7 +341,7 @@ def main(line_shp_path, road_shp, out_dir):
             intersection_points_list.append((intersection.x, intersection.y))
             PointT1_next = Point(intersection_points_list)
         
-          #MultiPointの場合 始点から遠い方を採用する
+          
           elif intersection.geom_type == 'MultiPoint':
             intersection_points_list.extend([(np.array(point.coords)[0][0], np.array(point.coords)[0][1]) for point in intersection.geoms]) #point list取得
             
@@ -372,7 +360,6 @@ def main(line_shp_path, road_shp, out_dir):
           return PointT1_next
     
     
-    """#def MultiPointをPointリストにする"""
     
     def multipoint_to_singlepoints(multipoint):
       points_lilst = []
@@ -385,7 +372,6 @@ def main(line_shp_path, road_shp, out_dir):
     
     """#def plot on T2
     """
-    # バッファーでラインとの交点を得る  #最初とつぎで挙動違う謎なのでiを入れた
     class generate_pointT2():
         def __init__(self, PointT2_start, pfix, t2_line, adi_, last2point, distance2t2):
             self.PointT2_start = PointT2_start
@@ -395,7 +381,7 @@ def main(line_shp_path, road_shp, out_dir):
             self.distance2t2 = distance2t2
             self.last2point = last2point
             
-        def buffer_for_pointT2_any_adj(self): #P0から54ftから残りの直線距離でT2上にポイント作成
+        def buffer_for_pointT2_any_adj(self): #P0, 54ft-dietance, T2
               
           if self.adi_ ==1 or self.adi_ ==2:  #adjust points i th point from the last (counting naturally) 
             remain_distance = 54*0.3048 - self.distance2t2 -2*0.3 # adjustment
@@ -463,31 +449,31 @@ def main(line_shp_path, road_shp, out_dir):
         
           return PointT2_next
     
-    """#def reference_pointからT2に垂線をおろす"""
+    """#def reference_point to T2"""
     
-    def pointref_to_pointT2(Pref,T2_linestring): #垂線の交点を得る
-      distance_2T2 = T2_linestring.distance(Pref) #起点Pから直近のラインまでの距離
+    def pointref_to_pointT2(Pref,T2_linestring):
+      distance_2T2 = T2_linestring.distance(Pref)
       PointT2 = T2_linestring.interpolate(T2_linestring.project(Pref)) #P0
       return PointT2#, distance_2T2
     
     """# def 角度取得"""
     
-    def unit_vector(vector): #array座標でよいと思う
+    def unit_vector(vector): 
         """ Returns the unit vector of the vector.  """
-        return vector / np.linalg.norm(vector) #np.linalg.norm() #default is None: ユークリッド(長さ)
+        return vector / np.linalg.norm(vector) 
     
     def angle_between(v1, v2):
         v1_u = unit_vector(v1)
         v2_u = unit_vector(v2)
-        return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))) #np.dot: 内積を計算, #np.clip: min, maxにそろえる, #np.arccos: 逆コサイン
+        return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
     
 
     def angle_vector(pvec, pcenter, line_from, line_to):
-      #向かう先のライン上の点
+      
       pvec = pointref_to_pointT2(pcenter, line_to)
-      #出発ライン上のtmp点
-      ptmp = line_from.interpolate(1) #1m適当
-      #ベクトル作成
+      
+      ptmp = line_from.interpolate(1) #1m any
+      
       vec1 = [pvec, pcenter]
       vec2 = [ptmp, pcenter]
       v1 = [np.array(pvec.xy[0][0]-pcenter.xy[0][0]), np.array(pvec.xy[1][0]-pcenter.xy[1][0]) ]
@@ -496,17 +482,16 @@ def main(line_shp_path, road_shp, out_dir):
     
       return angle_
     
-    """#def 一番近い対応するline_t1探す"""
+    """#def find nearest line_t1"""
     
     def find_line_t1(pairid, t2_line, direc):
       gdf_T1pair = gdf_T1s.query(f"Pair=={pairid}")
       t1_list = gdf_T1pair.geometry.tolist()
     
-      #T2の端点にp0つくる  
+      #p0 on T2 
       p0_class = roadedge_6ft(t2_line, direc, gdf_buff=gdf_road_dissolve)
       p0 = p0_class.point_from_6ft()
     
-      #p0からの距離を比較する
       distances = {}
       for t1 in t1_list:
         dis = p0.distance(t1)
@@ -517,22 +502,22 @@ def main(line_shp_path, road_shp, out_dir):
     
       return t1_line
     
-    #同じペアがないとき臨時でバッファーで周囲のラインを取得する
+    #If no same pair, collect another line by buff
     def find_line_t1_backup(t2_line, direc):
       gdf = gpd.GeoDataFrame(geometry=[t2_line])
       buff_t2 = gdf.buffer(15) #15m buffer
     
-      #bufferにひっかかるt1取得
+      #collect by buffer
       t1_list = []
       for i, li in gdf_T1s.iterrows():
         if li.geometry.intersects(buff_t2).any():
           t1_list.append(li.geometry)
     
-      #T2の端点にp0つくる
+      #p0 on T2
       p0_class = roadedge_6ft(t2_line, direc, gdf_buff=gdf_road_dissolve)
       p0 = p0_class.point_from_6ft()
     
-      #p0からの距離を比較する. Groupは小さい方（高い方）を採用
+      #compare distance from p0. Group from higher ele (small G)
       gp2 = gdf_T2s[gdf_T2s.geometry==t2_line].Group2.values[0]
       distances = {}
       for t1 in t1_list:
@@ -549,11 +534,11 @@ def main(line_shp_path, road_shp, out_dir):
     
     
     
-    """#処理開始
+    """#Run
     #line_t2
     """
     
-    #T2ラインを順に処理する
+    #T2 lines
     t2_list = gdf_T2s.geometry.values.tolist()
     
     points_all_T2 = []
@@ -562,11 +547,11 @@ def main(line_shp_path, road_shp, out_dir):
       pair = gdf_T2s[gdf_T2s.geometry==line_t2].Pair.values[0]
       dire = gdf_T2s[gdf_T2s.geometry==line_t2].direction.values[0]
     
-      ######## T2のedge 6ftにp0
-      #Processed =0であること
+      ######## p0 on T2 edge 6ft
+      #Processed =0
       check_processed = gdf_T2s[gdf_T2s.geometry==line_t2].Processed.values[0]
       if check_processed ==0:
-        ### 修正 ラインが全てRoad buff内にないこと
+        ### whole line not within Road buff
         if gdf_road_dissolve.contains(line_t2).all(): #road contains the whole line
            continue
         else:
@@ -576,13 +561,13 @@ def main(line_shp_path, road_shp, out_dir):
       else:
         continue
     
-      #いちばん近い対応するT1
+      #nearest T1
       try:
         line_t1 = find_line_t1(pair, line_t2, dire)
-      except: #対応するpairがないときbuffer10mで探す
+      except: # if no corresponding pair, find by buff
         line_t1 = find_line_t1_backup(line_t2, dire)
     
-      ######## T2に何個入るか
+      ######## num of points in T2
       direction = gdf_T2s[gdf_T2s.geometry==line_t2].direction.values[0]
       num_pointsT2, adj = num_points(line_t2, p0_, direction)
     
@@ -601,36 +586,35 @@ def main(line_shp_path, road_shp, out_dir):
         else: #i=0
             las2p = p0_
         
-        ### まず角度を調べる
-        p_ref = pointref_to_pointT2(p0_, line_t1) #T1上の点
+        p_ref = pointref_to_pointT2(p0_, line_t1) #on T1
         angle = angle_vector(p_ref, p0_, line_t2, line_t1)
-        if not ((angle > 45) & (angle < 135)): #位置関係おかしいとき
-          #始点から他の最寄りT1ライン探す
+        if not ((angle > 45) & (angle < 135)): #check geological relation
+          # find another T1 from start point
           distances = {}
           group_t2 = gdf_T2s[gdf_T2s.geometry == line_t2].Group2.values[0]
           for l in gdf_T1s.geometry.tolist():
             if l != line_t1:
               dis = l.distance(p0_)
-              if dis != 0: #いた #これ0でもいい？
+              if dis != 0: 
                 distances[l] = dis
           disonly = list(distances.values())
           disonly_sort = sorted(disonly)
           for d in disonly_sort:
             line = [k for k, v in distances.items() if v == d][0]
             group = gdf_T1s[gdf_T1s.geometry == line].Group2.values[0]
-            #Groupが高いT1をとる
+            #T1 with higher Group
             if group <= group_t2:
               sel_t1 = [k for k, v in distances.items() if v == d][0]
               break
             else:
               continue
           try:
-              line_t1 = sel_t1 #line_t1更新
+              line_t1 = sel_t1 #update line_t1
           except:
               line_t1 = line_t1 #no change
     
-        ### つぎに返る距離調べる
-        if len(start_point.xy[0]) ==0: #謎のstart_pointが入っていない事象
+        ### Return distance
+        if len(start_point.xy[0]) ==0:
           start_point  = p0_
         else:
           pass
@@ -659,7 +643,7 @@ def main(line_shp_path, road_shp, out_dir):
                 points_lineT2.append(pointT2_next)
                 start_point = pointT2_next
     
-        else: #9.144m以内, #Plot on T2 as usual
+        else: #within 9.144m, #Plot on T2 as usual
           if adj >0:
               generate_pointT2_class = generate_pointT2(start_point, p0_, line_t2, adji, las2p, distance_return)
               pointT2_next = generate_pointT2_class.buffer_for_pointT2_any_adj()
@@ -711,17 +695,16 @@ def main(line_shp_path, road_shp, out_dir):
     
       direction = gdf_T1s[gdf_T1s.geometry==line_t1].direction.values[0]
     
-      #T1のedgeのポイント
-      ### 修正　ラインが全てRoad buff内にないこと
+      #T1 edge point
+      ### 
       if gdf_road_dissolve.contains(line_t1).all():
            continue
       else:
-          # p0_t1 = point_from_6ft(line_t1, direction, gdf_buff=gdf_road_dissolve)
           p0_t1_class = roadedge_6ft(line_t1, direction, gdf_buff=gdf_road_dissolve)
           p0_t1 = p0_t1_class.point_from_6ft()
           p0_t1_end = p0_t1_class.point_from_6ft_end()
     
-      ######### T1に何個入るか, adjustment is available or not
+
       num_pointsT1, adj = num_points(line_t1, p0_t1, direction)
     
       ######## Plot on T1
@@ -777,17 +760,15 @@ def main(line_shp_path, road_shp, out_dir):
     ########## Finalize
     points_T1T2 = points_all_T1_set + points_all_T2_set
     
-    #重複あったら直す
+    #Correct duplicates
     points_T1T2_set = list(set(points_T1T2))
     
-    #empty削除
+    #remove empty
     points_T1T2_valid = [p for p in points_T1T2_set if not p.is_empty]
     
-    #Processedを入れるためgdfにする
     gdf_points = gpd.GeoDataFrame({"geometry":points_T1T2_valid, "Processed":0, "del":0})
     gdf_points = gdf_points.set_crs(gdf_line.crs, allow_override=True)
     
-    #bufferをつくる #*m
     gdf_points['buffer'] = gdf_points['geometry'].buffer(4)
     
     

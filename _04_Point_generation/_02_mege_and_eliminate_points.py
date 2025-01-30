@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-delete points within 6ft from road
+delete points too close each other
+delete points within road if it is endpoint
 """
 
 import os
@@ -27,7 +28,7 @@ def main(in_dir, road_shp, close_thre):
 
     """# Delete points within 6ft from road # a little bit shorter than 6ft
     """
-    close_limit = close_thre# 4 #m以内にあるポイントは削除
+    close_limit = close_thre
 
     #add Processed field
     merged_gdf["Processed"]=0
@@ -36,17 +37,15 @@ def main(in_dir, road_shp, close_thre):
   
     gdf_points = merged_gdf
     gdf_road = gpd.read_file(road_shp)
-    #bufferつくる
-    # road_distance = 6*0.3000 #6*0.3048 #m換算 ##buffer上のポイントは残すため少し小さめにつくる
+
     road_distance = 6*0 #rev not eliminate points within 6ft unless endpoints
     road_buff = gdf_road.buffer(road_distance)
     gdf_road_buff = gpd.GeoDataFrame(geometry=road_buff)
 
-    #Dissolveする
     gdf_road_buff["tmp"] = 1
     gdf_road_dissolve = gdf_road_buff.dissolve(by='tmp')
 
-    ### Polygon #これを使う
+    ### Polygon #use this
     buff_boundary = gdf_road_dissolve.geometry.values[0]
 
     ## exclude points within buffer

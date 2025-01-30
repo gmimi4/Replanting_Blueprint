@@ -12,7 +12,8 @@ import rasterio
 
 """# Set root directory
 """
-generate_points_dir = "your path" + os.sep + "06_Generate_points"
+root_dir = "your path"
+generate_points_dir = root_dir + os.sep + "06_Generate_points"
 os.makedirs(generate_points_dir, exist_ok=True)
 
 
@@ -32,9 +33,8 @@ gdf_buff.to_file(road_buff_path)
 os.chdir('set path to ReplantingBlueprint')
 from _04_Point_generation import _01_generate_points_slope_adjust_6ft
 
-pagenum = #1
-line_shps = glob.glob(rf"{your path + os.sep + 05_Pairing_terraces + os.sep + 03_direction +os.sep + extent{pagenum}"+os.sep+"*.shp")
-out_dir = generate_points_dir + os.sep + "01_allpoints" + os.sep + f"extent{pagenum}"
+line_shps = glob.glob(os.path.join(root_dir,"05_Pairing_terraces","03_direction","*.shp"))
+out_dir = generate_points_dir + os.sep + "01_allpoints" 
 os.makedirs(out_dir, exist_ok=True)
 
 for shp in tqdm(line_shps):
@@ -64,7 +64,7 @@ _02_mege_and_eliminate_points.main(in_dir, road_buff_path, close_thre)
 # few second
 target_area = "path to target area polygon"
 
-point_shp = in_dir + os.sep + "merge"+ os.sep + "merge_all_points_6ftfin.shp"
+point_shp = in_dir + os.sep + f"merge_{close_thre}m"+ os.sep + "merge_all_points_6ftfin.shp"
 
 gdf_area = gpd.read_file(target_area)
 gdf_point = gpd.read_file(point_shp)
