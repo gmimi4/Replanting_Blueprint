@@ -11,7 +11,8 @@ import pandas as pd
 
 """# Set root directory
 """
-pairing_terrace_dir = "your path" + os.sep + "05_Pairing_terraces"
+root_dir = "your path"
+pairing_terrace_dir = root_dir + os.sep + "05_Pairing_terraces"
 os.makedirs(pairing_terrace_dir, exist_ok=True)
 ### set DEM path
 dem_path = "set DEM path"

@@ -4,13 +4,14 @@ import os
 from osgeo import gdal
 import numpy as np
 from osgeo import osr
+from pyproj import CRS
 
 arcpy.env.overwriteOutput = True
 
 
-dem_raster = r"E:\Malaysia\01_Blueprint\SDGuthrie\01_CS\BktPuteri_DEM_05m.tif"
-dem_gaussian = r"E:\Malaysia\01_Blueprint\SDGuthrie\01_CS\BktPuteri_DEM_05m_k5s3.tif"
-out_dir = r"E:\Malaysia\01_Blueprint\SDGuthrie\01_CS"
+dem_raster = "DEM path"
+dem_gaussian = "Gaussian DEM path"
+out_dir = os.path.dirname(dem_gaussian)
 
 oridem_filename = os.path.basename(dem_raster)[:-4]
 gausdem_filename = os.path.basename(dem_gaussian)[:-4]
@@ -44,7 +45,11 @@ output.SetGeoTransform(curve_src.GetGeoTransform())
 projection = curve_src.GetProjection()
 srs = osr.SpatialReference()
 srs.ImportFromWkt(projection)
+# print(srs.ExportToWkt()) #check
 epsg_code = srs.GetAttrValue("AUTHORITY", 1)
+if epsg_code == None:
+    crs = CRS.from_wkt(srs.ExportToWkt())
+    epsg_code = crs.to_epsg()
 srs.ImportFromEPSG(int(epsg_code))
 output.SetProjection(srs.ExportToWkt())
 output.GetRasterBand(1).WriteArray(curve_arr_remove_2)

@@ -13,7 +13,8 @@ from pathlib import Path
 
 """# Set root directory
 """
-terrace_detection_dir = "your path" + os.sep + "04_Terrace_detection"
+root_dir = "your path"
+terrace_detection_dir = root_dir + os.sep + "04_Terrace_detection"
 os.makedirs(terrace_detection_dir, exist_ok=True)
 
 """# dilation and erosion for smoothing
