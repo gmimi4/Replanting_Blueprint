@@ -58,8 +58,8 @@ def main(line_shp_path, out_dir):
         return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
     
     def angle_between_intersection(li1,li2,po):
-      line_1_x, line_1_y = li1.coords.xy[0], li1.coords.xy[1] #x,yのarray
-      line_2_x, line_2_y = li2.coords.xy[0], li2.coords.xy[1] #
+      line_1_x, line_1_y = li1.coords.xy[0], li1.coords.xy[1]
+      line_2_x, line_2_y = li2.coords.xy[0], li2.coords.xy[1]
       point_x, point_y = po.coords.xy[0], po.coords.xy[1]
       dist_1 = np.sqrt((np.array(line_1_x) - np.array(point_x))**2 + (np.array(line_1_y) - np.array(point_y))**2)
       dist_2 = np.sqrt((np.array(line_2_x) - np.array(point_x))**2 + (np.array(line_2_y) - np.array(point_y))**2)
@@ -163,7 +163,7 @@ def main(line_shp_path, out_dir):
     
       # Check the distance between two lines. 
       # Distance from endpoint of least square line to another line. if distance < threshold, connect them
-      for line1, line2 in itertools.combinations(linestring_list, 2): #２つ取り出す組み合わせ(順不同)
+      for line1, line2 in itertools.combinations(linestring_list, 2):
     
         ## make endpoints
         p1near_sq, p1far_sq, mc1_first, mc1_last = least_square_line(line1) #LSQ points

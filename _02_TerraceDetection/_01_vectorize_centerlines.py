@@ -11,12 +11,20 @@ import geopandas as gpd
 import subprocess
 import time
 
-
+root_dir = "set your path again"
+terrace_detection_dir = root_dir + os.sep + "04_Terrace_detection"
 image_path = "path to _skelton.tif"
 clip_shp = "path to clip shp"
 out_center_dir = terrace_detection_dir + os.sep + "01_centerlines" #+ os.sep + pagenum
 os.makedirs(out_center_dir, exist_ok=True)
 clip_bool=True
+
+## use arcgis at present #excute in command
+arcpy_path = r'C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy' # set your ArcGIS path
+
+py_path = os.path.abspath(r"_01_vectorize_centerlines_arctool.py")
+
+gdb = r"E:\Malaysia\01_Blueprint\SDGuthrie\Arc_SDGuthrie\SDGuthrie\MyProject.gdb" ## set ArcGIS gdb path
 
 # def main(image_path, clip_shp, out_dir, clip_bool=True):
 out_dir = out_center_dir
@@ -52,13 +60,7 @@ else:
 """
 # Vectorize for centerlines of background using ArcGIS
 """
-## use arcgis at present #excute in command
-arcpy_path = r'C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy' # set your ArcGIS path
-## set polygon path!!!
-py_path = r"C:\Users\chihiro\Desktop\GitHub\ReplantingBlueprint_forMe\_02_TerraceDetection\_01_vectorize_centerlines_arctool.py"
-## set gdb path
-gdb = r"E:\Malaysia\01_Blueprint\SDGuthrie\Arc_SDGuthrie\SDGuthrie\MyProject.gdb"
-# process = subprocess.run([arcpy_path, py_path], stdout=subprocess.PIPE, shell=True)
+
 process = subprocess.run([arcpy_path, py_path, outpoly, out_dir, gdb], stdout=subprocess.PIPE, shell=True)
 print("centerlines created")
 

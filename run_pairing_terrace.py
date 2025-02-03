@@ -24,8 +24,8 @@ dem_path = "set DEM path"
 os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _03_vertical_cut
 
-line_shps = glob.glob(rf"your path to 04_Terrace_detection\06_cut_by_intersect\2_2cut" + os.sep + "*.shp")
-out_dir = pairing_terrace_dir + os.sep + "01_vertical_cut" + os.sep + f"extent{pagenum}"
+line_shps = glob.glob(os.path.join(root_dir,"04_Terrace_detection","06_cut_by_intersect","2_2cut" + os.sep + "*.shp"))
+out_dir = pairing_terrace_dir + os.sep + "01_vertical_cut"
 os.makedirs(out_dir, exist_ok=True)
 
 for shp in tqdm(line_shps):
@@ -41,9 +41,9 @@ os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _03_vertical_cut_post
 
 # before vertical cut
-line_shps = glob.glob(rf"your path" + os.sep + "04_Terrace_detection\06_cut_by_intersect\2_2cut\extent{pagenum}" + os.sep + "*.shp")
+line_shps = glob.glob(os.path.join(root_dir,"04_Terrace_detection","06_cut_by_intersect","2_2cut" + os.sep + "*.shp"))
 # after_cut_dir
-after_cut_dir = pairing_terrace_dir + os.sep + "01_vertical_cut" + os.sep + f"extent{pagenum}"
+after_cut_dir = pairing_terrace_dir + os.sep + "01_vertical_cut"
 # after_cut_dir = out_dir
 
 for shp in tqdm(line_shps):
@@ -56,11 +56,10 @@ for shp in tqdm(line_shps):
 os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _04_paringID
 
-pagenum = 
-after_cut_dir = pairing_terrace_dir + os.sep + "01_vertical_cut" + os.sep + f"extent{pagenum}"
+after_cut_dir = pairing_terrace_dir + os.sep + "01_vertical_cut"
 in_dir = after_cut_dir + os.sep + "post"
 line_shps = glob.glob(in_dir + os.sep + "*shp")
-out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing" + os.sep + f"extent{pagenum}"
+out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing"
 os.makedirs(out_dir_d2, exist_ok=True)
 
 
@@ -75,8 +74,7 @@ os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _05_paringID_post
 
 #1min
-pagenum = #! 
-out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing" + os.sep + f"extent{pagenum}"
+out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing"
 line_shps = glob.glob(out_dir_d2 + os.sep + "*T1T2.shp")
 out_dir_d3 = os.path.dirname(line_shps[0]) + os.sep + "_post"
 os.makedirs(out_dir_d3, exist_ok=True)
@@ -92,11 +90,10 @@ for shp in tqdm(line_shps):
 os.chdir('set path to ReplantingBlueprint')
 from _03_PairingTerraces import _06_put_direction
 
-pagenum = #1
-out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing" + os.sep + f"extent{pagenum}"
+out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing"
 out_dir_d3 = out_dir_d2 + os.sep + "_post"
 line_shps = glob.glob(out_dir_d3 + os.sep + "*.shp")
-out_dir_d4 = pairing_terrace_dir + os.sep + "03_direction" +os.sep + f"extent{pagenum}"
+out_dir_d4 = pairing_terrace_dir + os.sep + "03_direction"
 os.makedirs(out_dir_d4, exist_ok=True)
 
 for shp in tqdm(line_shps):
