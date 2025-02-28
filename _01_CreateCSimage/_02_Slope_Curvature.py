@@ -9,8 +9,8 @@ from pyproj import CRS
 arcpy.env.overwriteOutput = True
 
 
-dem_raster = "DEM path"
-dem_gaussian = "Gaussian DEM path"
+dem_raster = "set DEM path"
+dem_gaussian = "set Gaussian DEM path"
 out_dir = os.path.dirname(dem_gaussian)
 
 oridem_filename = os.path.basename(dem_raster)[:-4]

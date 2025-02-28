@@ -12,14 +12,15 @@ import subprocess
 """###### CS image ######"""
 
 """ #Set the main dir"""
-root_dir = "your path"
+root_dir = "set your path"
 cs_dir = root_dir + os.sep + "01_CS"
 os.makedirs(cs_dir, exist_ok=True)
 
+ReplantingBlueprint = 'set path to ReplantingBlueprint'
 
 """# Gausian filtering of DEM for slope
 """
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _01_CreateCSimage import _01_Gaussian
 
 dem_raster = "set your dem path"
@@ -33,9 +34,8 @@ _01_Gaussian.main(dem_raster, out_dir)
 """# Generate slope and curvature
    # you need arcpy for curvature image. please assign python engine for arcpy
 """
-os.chdir('set path to ReplantingBlueprint')
-
-arcpy_path = '#your arcpy path'
+os.chdir(ReplantingBlueprint)
+arcpy_path = '#set your arcpy path'
 py_path = './_01_CreateCSimage/_02_Slope_Curvature.py'
 
 # -----------------------------------------------------------------------
@@ -50,7 +50,7 @@ process = subprocess.run([arcpy_path, py_path], stdout=subprocess.PIPE, shell=Tr
 
 """# Generate CS image
 """
-# os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _01_CreateCSimage import _03_CSMap_export
 
 dem_name = os.path.basename(dem_raster)[:-4]

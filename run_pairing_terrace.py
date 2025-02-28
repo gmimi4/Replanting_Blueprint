@@ -11,17 +11,16 @@ import pandas as pd
 
 """# Set root directory
 """
-root_dir = "your path"
+root_dir = "set your path"
+dem_path = "set DEM path"
 pairing_terrace_dir = root_dir + os.sep + "05_Pairing_terraces"
 os.makedirs(pairing_terrace_dir, exist_ok=True)
-### set DEM path
-dem_path = "set DEM path"
-
+ReplantingBlueprint = 'set path to ReplantingBlueprint'
 
 """# Vertically cut lines at endpoints of each other
 """
 #20min
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _03_PairingTerraces import _03_vertical_cut
 
 line_shps = glob.glob(os.path.join(root_dir,"04_Terrace_detection","06_cut_by_intersect","2_2cut" + os.sep + "*.shp"))
@@ -37,7 +36,7 @@ for shp in tqdm(line_shps):
 """# dissapered lines extracted and vertically cut (some lines dissapeared somehow)  
 """
 #5min
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _03_PairingTerraces import _03_vertical_cut_post
 
 # before vertical cut
@@ -53,7 +52,7 @@ for shp in tqdm(line_shps):
 """# Assign T1T2 and pairID
 """
 #30-45min
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _03_PairingTerraces import _04_paringID
 
 after_cut_dir = pairing_terrace_dir + os.sep + "01_vertical_cut"
@@ -62,7 +61,6 @@ line_shps = glob.glob(in_dir + os.sep + "*shp")
 out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing"
 os.makedirs(out_dir_d2, exist_ok=True)
 
-
 for shp in tqdm(line_shps):
   _04_paringID.main(shp, dem_path, out_dir_d2)
 
@@ -70,7 +68,7 @@ for shp in tqdm(line_shps):
 """# connect neighboring lines which have same pairID
 """
 #1 min
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _03_PairingTerraces import _05_paringID_post
 
 #1min
@@ -87,7 +85,7 @@ for shp in tqdm(line_shps):
 """# Put direction
 """
 #1 min
-os.chdir('set path to ReplantingBlueprint')
+os.chdir(ReplantingBlueprint)
 from _03_PairingTerraces import _06_put_direction
 
 out_dir_d2 = pairing_terrace_dir + os.sep + "02_pairing"
